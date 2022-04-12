@@ -5,3 +5,7 @@ cowplot
 viridis
 ggrepel
 uwot
+broom
+biomaRt
+ggbeeswarm
+limma
