@@ -6,6 +6,7 @@ ENSEMBL_VERSION <- "106"
 SP_FILE <-  "data/march_report.csv"
 
 MIN_PEPTIDES <- 3
+FDR_LIMIT <- 0.01
 
 
 make_metadata <- function(s_file) {

@@ -31,13 +31,23 @@ targets_main <- function() {
     tar_target(fig_umap, plot_umap(set, n_neighbours = 20, min_dist = 0.1)),
     tar_target(png_big_heat, plot_big_heatmap(set) %>% gs("big_heatmap", 20, 49))
   )
+  
+  differential_abundance <- list(
+    tar_target(da, limma_de(set)),
+    tar_target(fig_volcano, plot_volcano(da, fdr_limit = FDR_LIMIT)),
+    tar_target(fig_pdist, plot_pdist(da))
+  )
 
+  clustering <- list(
+    tar_target(prot_umap, make_umap(set, n_neighbours = 30, min_dist = 0.1))
+  )
 
   c(
     biomart,
     read_data,
     selections,
-    overview
+    overview,
+    differential_abundance
   )
 
 }
