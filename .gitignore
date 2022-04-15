@@ -1,3 +1,4 @@
+.DS_Store
 .Rproj.user
 .Rhistory
 .RData
@@ -5,3 +6,7 @@
 renv
 data
 _targets
+fig
+doc/report_cache
+doc/report_files
+doc/report.html

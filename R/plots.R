@@ -74,12 +74,12 @@ make_hist <- function(x, bins) {
 }
 
 
-plot_sample_distributions <- function(set, bins = 100, ncol = 15, what = "abu_norm",
+plot_sample_distributions <- function(set, bins = 100, ncol = 15, what = "abu_norm", colour_var = "treatment",
                                       x_breaks = c(-5, 0, 5), text_size = 10, x_lim = c(-5, 5)) {
   d <- set$dat %>% 
-    mutate(val = get(what)) %>% 
     left_join(set$metadata, by = "sample") %>% 
-    select(sample, val, group) %>% 
+    mutate(val = get(what), colvar = get(colour_var)) %>% 
+    select(sample, val, colvar) %>% 
     nest(data = val) %>% 
     mutate(hist = map(data, ~make_hist(.x$val, bins = bins))) %>% 
     select(-data) %>% 
@@ -88,7 +88,7 @@ plot_sample_distributions <- function(set, bins = 100, ncol = 15, what = "abu_no
   
   rm(set)
   
-  ggplot(d, aes(x = x, y = y, fill = group)) +
+  ggplot(d, aes(x = x, y = y, fill = colvar)) +
     theme_bw() +
     theme(
       text = element_text(size = text_size),
@@ -135,7 +135,8 @@ plot_kernel_comparison <- function(set) {
   cowplot::plot_grid(g1, g2, nrow = 1)
 }
 
-plot_clustering <- function(set, text_size = 10, what = "abu_norm", dist.method = "euclidean", clust.method = "complete") {
+plot_clustering <- function(set, text_size = 10, what = "abu_norm", dist.method = "euclidean",
+                            clust.method = "complete", colour_var = "treatment") {
   tab <- dat2mat(set$dat, what)
   
   dendr <- t(tab) %>% 
@@ -145,9 +146,13 @@ plot_clustering <- function(set, text_size = 10, what = "abu_norm", dist.method 
     ggdendro::dendro_data()
   
   seg <- ggdendro::segment(dendr)
-  meta <- set$metadata %>% mutate(sample = as.character(sample))
+  meta <- set$metadata %>%
+    mutate(
+      colvar = get(colour_var),
+      sample = as.character(sample)
+    )
   labs <- left_join(dendr$labels %>% mutate(label = as.character(label)), meta, by = c("label" = "sample")) %>% 
-    mutate(colour = okabe_ito_palette[as_factor(group)])
+    mutate(colour = okabe_ito_palette[as_factor(colvar)])
   theme.d <- ggplot2::theme(
     panel.grid.major = ggplot2::element_blank(),
     panel.grid.minor = ggplot2::element_blank(),
@@ -165,7 +170,7 @@ plot_clustering <- function(set, text_size = 10, what = "abu_norm", dist.method 
     scale_x_continuous(breaks = seq_along(labs$label), labels = labs$label) +
     scale_y_continuous(expand = c(0,0), limits = c(0, max(seg$y) * 1.03)) +
     scale_colour_manual(values = okabe_ito_palette) +
-    labs(x = NULL, y = "Distance", title = what)
+    labs(x = NULL, y = "Distance")
 }
 
 
@@ -190,12 +195,14 @@ plot_distance_matrix <- function(set, what = "abu_norm", text_size = 10) {
 }
 
 
-plot_xy <- function(dat, point_size = 1) {
-  ggplot(dat, aes(x = x, y = y, colour = group, shape = day)) +
+plot_xy <- function(dat, colour_var, shape_var, point_size = 1) {
+  dat %>% 
+    rename(colvar = !!colour_var, shapevar = !!shape_var) %>% 
+  ggplot(aes(x = x, y = y, colour = colvar, shape = shapevar)) +
     theme_bw() +
     geom_point(size = point_size) +
-    scale_color_manual(values = okabe_ito_palette) +
-    scale_shape_manual(values = c(15:18, 0, 1, 2, 5, 6), na.value = 4) +
+    scale_color_manual(values = okabe_ito_palette, name = colour_var) +
+    scale_shape_manual(values = c(15:18, 0, 1, 2, 5, 6), na.value = 4, name = shape_var) +
     labs(x = NULL, y = NULL) +
     theme(
       panel.grid = element_blank()
@@ -218,7 +225,7 @@ umap2xy <- function(um, meta) {
     left_join(meta, by = "sample")
 }
 
-plot_pca <- function(set, point_size = 2, what = "abu_norm") {
+plot_pca <- function(set, point_size = 2, what = "abu_norm", colour_var = "treatment", shape_var = "day") {
   tab <- dat2mat(set$dat, what)
   
   # remove rows with zero variance
@@ -230,19 +237,21 @@ plot_pca <- function(set, point_size = 2, what = "abu_norm") {
   pca1 <- sprintf("PCA1 (%5.1f%%)", var.perc[1])
   pca2 <- sprintf("PCA2 (%5.1f%%)", var.perc[2])
   pca2xy(pca, set$metadata) %>% 
-    plot_xy(point_size = point_size) + labs(x = pca1, y = pca2, title = what)
+    plot_xy(colour_var, shape_var, point_size) +
+    labs(x = pca1, y = pca2)
 }
 
 
 plot_umap <- function(set, what = "abu_norm", point_size = 2, seed = 1,
-                      n_neighbours = 15, min_dist = 0.01) {
+                      n_neighbours = 15, min_dist = 0.01,
+                      colour_var = "treatment", shape_var = "day") {
   tab <- dat2mat(set$dat, what)
   
   set.seed(seed)
   tab <- tab[apply(tab, 1, function(v) sum(is.na(v)) == 0), ]
   uwot::umap(t(tab), n_neighbors = n_neighbours, min_dist = min_dist) %>% 
     umap2xy(set$metadata) %>% 
-    plot_xy(point_size = point_size)
+    plot_xy(colour_var, shape_var, point_size)
 }
 
 plot_k_umap <- function(ku, point_size = 2) {
@@ -251,21 +260,30 @@ plot_k_umap <- function(ku, point_size = 2) {
 }
 
 plot_detection <- function(set) {
-  d <- set$dat %>% 
-    group_by(id) %>% 
-    summarise(n_detect = n()) %>% 
-    group_by(n_detect) %>% 
-    tally() %>% 
-    mutate(cum = cumsum(n))
+  cumcurve <- function(d, what) {
+    d %>%
+      group_by(get(what)) %>% 
+      tally() %>%
+      arrange(desc(n)) %>% 
+      mutate(x = row_number())
+  }
+  plotcurve <- function(d) {
+    ggplot(d, aes(x = x, y = n)) +
+      theme_bw() +
+      geom_step(direction = "vh") +
+      scale_x_continuous(expand = expansion(mult = c(0, 0.03)), limits = c(0, NA)) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.03)), limits = c(0, NA))
+  }
+  
+  dp <- cumcurve(set$dat, "id")
+  ds <- cumcurve(set$dat, "sample")
+  
   rm(set)
-  ggplot(d, aes(x = max(cum) - cum + 1, y = n_detect)) +
-    theme_bw() +
-    theme(
-    ) +
-    geom_step(direction = "vh") +
-    labs(x = "Proteins", y = "Detected in that many samples") +
-    scale_x_continuous(expand = expansion(mult = c(0, 0.03)), limits = c(0, NA)) +
-    scale_y_continuous(expand = expansion(mult = c(0, 0.03)), limits = c(0, NA))
+  
+  g1 <- plotcurve(dp) + labs(x = "Proteins", y = "Detected in that many samples")
+  g2 <- plotcurve(ds) + labs(x = "Samples", y = "Contains that many proteins")
+
+  cowplot::plot_grid(g1, g2, align = "h")
 }
 
 plot_sample_detection <- function(set) {
@@ -280,12 +298,13 @@ plot_sample_detection <- function(set) {
     labs(x = "Number of detected proteins", y = "Sample")
 }
 
-plot_unique_pep <- function(set) {
+plot_unique_pep <- function(set, min_pep) {
   d <- set$qc %>% 
     group_by(unique_pep) %>%
-    tally()
+    tally() %>% 
+    mutate(uni = unique_pep < min_pep)
   rm(set)
-  ggplot(d, aes(x = unique_pep, y = n, fill = unique_pep < MIN_PEPTIDES)) +
+  ggplot(d, aes(x = unique_pep, y = n, fill = uni)) +
     theme_bw() +
     theme(
       panel.grid = element_blank(),
@@ -295,12 +314,12 @@ plot_unique_pep <- function(set) {
     scale_fill_manual(values = c("black", "white")) +
     scale_x_continuous(trans = "log1p", breaks = c(0, 1, 2, 5, 10, 50, 100, 200, 300)) +
     scale_y_continuous(trans = "log10", labels = scales::comma) +
-    labs(x = "Number of unique peptides", y = "Count")
+    labs(x = "Number of unique peptides", y = "Count of protein-samples")
 }
 
 
 plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
-                             id_sel = NULL, sample_sel = NULL) {
+                             id_sel = NULL, sample_sel = NULL, order_col = TRUE) {
   d <- set$dat %>% 
     mutate(val = get(what))
   if (!is.null(sample_sel))
@@ -316,7 +335,14 @@ plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
     ) %>% 
     filter(n > min_n)
   tab <- dat2mat(d, "fc")
-  ggheatmap(tab, with.x.text = FALSE, with.y.text = FALSE, max.fc = max_fc, legend.name = "logFC")
+  
+  smpls <- set$metadata %>% 
+    filter(sample %in% colnames(tab)) %>% 
+    arrange(treatment, day) %>% 
+    pull(sample)
+  tab <- tab[, smpls]
+  
+  ggheatmap(tab, order.col = order_col, with.x.text = FALSE, with.y.text = FALSE, dendro.line.size = 0.2, max.fc = max_fc, legend.name = "logFC")
 }
 
 
@@ -325,8 +351,8 @@ plot_protein <- function(set, pid, what = "abu_norm") {
     mutate(val = get(what)) %>% 
     filter(id == pid) %>%
     left_join(set$metadata, by = "sample") %>% 
-    arrange(group, day) %>% 
-    unite(x, c(group, day)) %>% 
+    arrange(treatment, day) %>% 
+    unite(x, c(treatment, day)) %>% 
     mutate(x = as_factor(x), xi = as.integer(x))
   dm <- d %>% 
     group_by(xi) %>% 
@@ -343,3 +369,28 @@ plot_protein <- function(set, pid, what = "abu_norm") {
     geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
     labs(x = NULL, y = what)
 }
+
+
+plot_protein_coverage <- function(qc) {
+  cov_mean <- qc %>%
+    filter(coverage > 0) %>% 
+    group_by(id) %>%
+    summarise(M = mean(coverage)) %>%
+    arrange(M) %>%
+    mutate(x = row_number())
+  d <- qc %>% 
+    filter(coverage > 0) %>% 
+    left_join(cov_mean, by = "id") %>% 
+    select(x, coverage)
+  rm(qc, cov_mean)
+  
+  d %>% 
+    ggplot(aes(x = x, y = coverage)) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    scale_y_continuous(expand = c(0, 0), limits = c(0, 1)) +
+    scale_x_continuous(expand = expansion(mult = c(0.01, 0.01))) +
+    geom_scattermore(pointsize = 0.2, pixels = c(1000, 1000)) +
+    labs(x = "Proteins", y = "Coverage")
+}
+

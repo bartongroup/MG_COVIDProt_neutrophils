@@ -1,4 +1,6 @@
 tidyverse
+janitor
+scattermore
 dendsort
 ggdendro
 cowplot
