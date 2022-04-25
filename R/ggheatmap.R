@@ -2,7 +2,7 @@ ggheatmap <- function(tab, order.col = TRUE, order.row = TRUE, dendro.line.size 
                       text.size = 12, legend.text.size = 12, legend.name = "value",
                       dist.method = "euclidean", clust.method = "complete", title = NULL,
                       with.y.text = FALSE, with.x.text = TRUE, palette = "distiller",
-                      max.fc = NULL) {
+                      max.fc = NULL, divs = NULL) {
 
   d <- tab %>%
     as_tibble(rownames = "rowname") %>%
@@ -47,6 +47,10 @@ ggheatmap <- function(tab, order.col = TRUE, order.row = TRUE, dendro.line.size 
     scale_x_discrete(expand = c(0, 0)) +
     labs(x = NULL, y = NULL, title = title)
 
+  if (!is.null(divs)) {
+    heat_plot <- heat_plot + geom_vline(xintercept = divs, colour = "black")
+  }
+  
   if (palette == "viridis") {
     heat_plot <- heat_plot +
       scale_fill_viridis_c(option = "cividis", name = legend.name)

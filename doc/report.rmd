@@ -60,36 +60,35 @@ Collaborators: Merete Long, James Chalmers
 
 Raw data were analysed with [Spectronaut](https://biognosys.com/software/spectronaut). I have received one CSV file at protein level (one row per protein/protein group) with raw and normalised abundances and some additional QC information.
 
-### Unique peptides
-
-Data were filtered to include only proteins with at least 3 unique peptides identified in at least one sample. Out of `r N(tar_read(n_all_proteins))` proteins in the input file, `r N(tar_read(n_hit_proteins))` pass this criterion. Figure below shows the distribution of the number of unique peptides per protein measurement (that is in each sample separately). Proteins removed are marked with open circles.
-
-```{r unique_pept}
-tar_read(fig_unique_pep)
-```
-
 ### Protein detection
 
 Not all proteins are detected across all `r tar_read(n_samples)` samples. Figure below shows in how many samples each protein was detected, starting from the highest number. There are `r N(tar_read(n_full_detection))` proteins detected across all samples.
 
-```{r detection}
+```{r detection, fig.width=10, fig.height=4}
 tar_read(fig_detection)
 ```
-
 
 
 ## Experiment
 
 We have a lot of samples. There are two treatments (drug and placebo), several time points and batches. Here is a summary of the sample numbers:
 
-```{r meta}
-tar_read(metadata_full) %>%
-  drop_na() %>% 
+```{r meta_day}
+tar_read(metadata) %>%
   group_by(treatment, day) %>% 
   tally() %>% 
   flextable() %>% 
-  merge_v(j = 1) %>% 
-  hline(i = 6)
+  theme_box() %>% 
+  merge_v(j = 1)
+```
+
+```{r meta_batch}
+tar_read(metadata) %>%
+  group_by(batch, day) %>% 
+  tally() %>% 
+  flextable() %>% 
+  theme_box() %>% 
+  merge_v(j = 1)
 ```
 
 ## Overview
@@ -106,7 +105,7 @@ knitr::include_graphics("../fig/kernels.png")
 ### Clustering
 
 ```{r fig_clustering, fig.width=8, fig.height=40}
-tar_read(fig_clustering) 
+tar_read(fig_clustering)
 ```
 
 ### Correlation matrix

@@ -1,4 +1,101 @@
-read_spectronaut_data <- function(file, meta, min_pep) {
+download_uniprot_mapping <- function(uri) {
+  read_tsv(UNIPROT_MAPPING_FILE, col_names = c("uniprot", "what", "gid"), show_col_types = FALSE) %>% 
+    filter(what == "Gene_Name") %>% 
+    select(uniprot, gene_name = gid)
+}
+
+
+read_spectronaut_long_data <- function(data_file, info_file, uni_file, bad_samples = BAD_SAMPLES) {
+  meta <- readxl::read_excel(info_file, na = "n/a") %>% 
+    set_names(c(
+      "batch",
+      "run_index",
+      "raw_file_name",
+      "participant_id",
+      "day",
+      "study",
+      "age",
+      "sex",
+      "time_from_symptoms",
+      "treatment",
+      "completion",
+      "day_of_treatment",
+      "on_drug"
+    )) %>% 
+    mutate(raw_sample = str_remove(raw_file_name, ".raw")) %>% 
+    select(-raw_file_name) %>% 
+    mutate(
+      treatment = recode(treatment, "Brensocatib 25mg once daily" = "drug", "Placebo 25mg once daily" = "placebo"),
+      completion = as.logical(completion),
+      sex = toupper(sex),
+      on_drug = str_remove(on_drug, "\\s\\(discontinued\\)"),
+      delay = if_else(time_from_symptoms > 10, "large", "small")
+    ) %>% 
+    unite(treat_day, c(treatment, day), sep = "_", remove = FALSE)
+  
+  uni_gene <- download_uniprot_mapping(uni_file)
+  
+  raw <- read_tsv(data_file, show_col_types = FALSE) %>% 
+    rename_with(.fn = ~str_remove(., "^R.|^PG.")) %>% 
+    janitor::clean_names() %>% 
+    rename(
+      raw_sample = file_name
+    ) %>% 
+    filter(raw_sample %in% meta$raw_sample)
+  
+  samrep <- raw %>% 
+    select(raw_sample, replicate) %>% 
+    distinct()
+  
+  metadata <- meta %>% 
+    left_join(samrep, by = "raw_sample") %>% 
+    mutate(
+      s1 = recode(treatment, "drug" = "D", "placebo" = "P"),
+      s2 = sprintf("%02d", day),
+      s3 = seq_along(participant_id)
+    ) %>% 
+    unite(sample, c(s1, s2, s3), sep = "-", remove = FALSE) %>% 
+    select(-c(s1, s2, s3)) %>% 
+    mutate(across(c(batch, participant_id, day, sex, treatment), as.factor)) %>% 
+    mutate(
+      treatment = fct_relevel(treatment, "placebo"),
+      sex = fct_relevel(sex, "F"),
+      bad = sample %in% bad_samples
+    )
+  
+  info <- raw %>% 
+    select(protein_accessions, protein_descriptions, protein_names) %>% 
+    distinct() %>% 
+    mutate(id = row_number(), .before = 1)
+  
+  id_prot_gene <- info %>%
+    select(id, uniprot = protein_accessions) %>%
+    separate_rows(uniprot, sep = ";") %>%
+    distinct() %>%
+    left_join(uni_gene, by = c("uniprot"))
+  
+  d <- raw %>% 
+    left_join(select(info, id, protein_accessions), by = "protein_accessions") %>% 
+    left_join(select(metadata, raw_sample, sample), by = "raw_sample")
+  
+  dat <- d %>% 
+    select(id, sample, quantity) %>% 
+    drop_na() %>% 
+    normalise_proteins()
+  
+  qc <- d %>% 
+    select(id, sample, coverage, is_single_hit, qvalue)
+  
+  list(
+    metadata = metadata,
+    info = info,
+    id_prot_gene = id_prot_gene,
+    qc = qc,
+    dat = dat
+  )
+}
+
+read_spectronaut_wide_data <- function(file, meta, min_pep) {
   d <- read_csv(file, show_col_types = FALSE) %>% 
     rename(id = 1) %>% 
     mutate(id = row_number())  # prefer starting from 1
@@ -60,6 +157,22 @@ read_spectronaut_data <- function(file, meta, min_pep) {
     dat = dat,
     metadata = meta
   )
+}
+
+
+normalise_proteins <- function(dat) {
+  md <- dat %>% 
+    mutate(abu = log10(quantity)) %>% 
+    group_by(sample) %>% 
+    summarise(med = median(abu)) %>% 
+    mutate(med = med / mean(med))
+  dat %>% 
+    left_join(md, by = "sample") %>% 
+    mutate(
+      abu = log10(quantity),
+      abu_norm = abu / med
+    ) %>% 
+    select(-c(quantity, med))
 }
 
 

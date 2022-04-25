@@ -1,13 +1,53 @@
-limma_de <- function(set, formula = "~ 0 + group", what = "abu_norm", info_cols = NULL) {
-  X <- dat2mat(set$dat, what)
-
+# DE for selected contrasts
+limma_de <- function(set, ctr_fun, group_var = "treatment", what = "abu_norm") {
+  tab <- dat2mat(set$dat, what)
+  
   meta <- set$metadata
-  conditions <- unique(meta$group)
+  frm <- glue::glue("~0 + {group_var}")
+  design_mat <- model.matrix(as.formula(frm), data = meta)
+  
+  contrast_mat <- ctr_fun(design_mat)
+  contrasts <- colnames(contrast_mat)
+  contrast_names <- contrasts %>% str_remove_all(glue::glue("{group_var}|\\s")) %>% str_replace("-", ":")
+  
+  fit <- tab %>%
+    lmFit(design_mat) %>%
+    contrasts.fit(contrasts = contrast_mat) %>%
+    eBayes()
+  
+  map2_dfr(contrasts, contrast_names, function(ctr, nam) {
+    topTable(fit, coef = ctr, number = 1e6, sort.by = "none") %>%
+      as_tibble(rownames = "id") %>%
+      mutate(across(c(id), as.integer)) %>% 
+      mutate(contrast = nam) %>%
+      rename(FDR = adj.P.Val, PValue = P.Value) %>%
+      select(-c(t, B))
+  }) %>% 
+    drop_na() %>% 
+    mutate(contrast = factor(contrast, levels = contrast_names))
+}
+
+
+
+# all pairs for a given group
+limma_de_a <- function(set, group_var = "treatment", what = "abu_norm", info_cols = NULL) {
+  meta <- set$metadata %>% 
+    filter(!bad) %>% 
+    mutate(group = get(group_var)) %>% 
+    filter(!is.na(group))
+  
+  X <- dat2mat(set$dat, what)
+  X <- X[, meta$sample]
+  
+  groups <- unique(as.character(meta$group)) %>% 
+    janitor::make_clean_names()
+  
+  formula = "~ 0 + group"
 
   design <- model.matrix(as.formula(formula), meta)
-  colnames(design) <- conditions
+  colnames(design) <- groups
 
-  ctrs <- expand_grid(x = as_factor(conditions), y = as_factor(conditions)) %>%
+  ctrs <- expand_grid(x = as_factor(groups), y = as_factor(groups)) %>%
     filter(as.integer(x) < as.integer(y)) %>%
     unite(contrast, c(y, x), sep = "-") %>%
     pull(contrast)
@@ -42,10 +82,10 @@ limma_de <- function(set, formula = "~ 0 + group", what = "abu_norm", info_cols 
 limma_de_f <- function(set, formula, what = "abu_norm", info_cols = NULL) {
   tab <- dat2mat(set$dat, what)
   meta <- set$metadata %>% 
-    drop_na()
+    filter(!bad)
   tab <- tab[, meta$sample]
   
-  design_mat <- model.matrix(as.formula(formula), data = set$metadata)
+  design_mat <- model.matrix(as.formula(formula), data = meta)
   coefs <- colnames(design_mat)[-1]
   
   fit <- tab %>%

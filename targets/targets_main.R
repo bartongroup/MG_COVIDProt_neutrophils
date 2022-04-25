@@ -10,9 +10,8 @@ targets_main <- function() {
   )
 
   read_data <- list(
-    tar_target(metadata_full, make_metadata("info/samples.txt")),
-    tar_target(metadata, metadata_full %>% drop_na() %>% filter(day %in% c(1, 8, 15, 29)) %>% droplevels()),
-    tar_target(set, read_spectronaut_data(SP_FILE, metadata, min_pep = MIN_PEPTIDES))
+    tar_target(set, read_spectronaut_long_data(SPECTRONAUT_FILE, METADATA_FILE, UNIPROT_MAPPING_FILE)),
+    tar_target(metadata, set$metadata)
   )
   
   selections <- list(
@@ -22,28 +21,26 @@ targets_main <- function() {
   )
 
   overview <- list(
-    tar_target(png_coverage, plot_protein_coverage(set$qc) %>% gs("coverage", 8, 3)),
-    tar_target(fig_unique_pep, plot_unique_pep(set, min_pep = MIN_PEPTIDES)),
     tar_target(fig_detection, plot_detection(set)),
     tar_target(fig_sample_detection, plot_sample_detection(set)),
-    tar_target(png_sample_dist, plot_sample_distributions(set, x_breaks = c(-4, 0, 4), text_size = 7) %>% gs("sample_dist", 10, 10)),
+    tar_target(png_sample_dist, plot_sample_distributions(set, x_lim = c(0, 12), x_breaks = c(0, 6, 12), text_size = 7) %>% gs("sample_dist", 10, 10)),
     tar_target(png_kernels, plot_kernel_comparison(set) %>% gs("kernels", 6, 3)),
-    tar_target(fig_clustering, plot_clustering(set)),
+    tar_target(fig_clustering, plot_clustering(set, colour_var = "batch")),
     tar_target(fig_cormat, plot_distance_matrix(set)),
-    tar_target(fig_pca, plot_pca(set)),
-    tar_target(fig_umap, plot_umap(set, n_neighbours = 20, min_dist = 0.1)),
+    tar_target(fig_pca, plot_pca(set, colour_var = "batch", shape_var = "day")),
+    tar_target(fig_umap, plot_umap(set, n_neighbours = 20, min_dist = 0.1, colour_var = "batch", shape_var = "day")),
     tar_target(png_big_heat, plot_big_heatmap(set) %>% gs("big_heatmap", 20, 49))
   )
   
   differential_abundance <- list(
-    tar_target(da, limma_de_f(set, "~ treatment + day")),
+    tar_target(da, limma_de_f(set, "~ treatment + day + batch")),
     tar_target(fig_volcano, plot_volcano(da, fdr_limit = FDR_LIMIT)),
     tar_target(fig_pdist, plot_pdist(da))
   )
 
   profiles <- list(
     tar_target(prot_umap, make_prot_umap(set, n_neighbours = 30, min_dist = 0.1)),
-    tar_target(time_prof, make_time_profiles(set)),
+    tar_target(time_prof, make_time_profiles(set, treat = "drug")),
     tar_target(time_prof_cl6, cluster_time_profiles(time_prof, n_clust = 6)),
     tar_target(fig_profiles_cl6, plot_cluster_profiles(time_prof_cl6)),
     tar_target(fig_prof_heatmap, plot_prof_heatmap(time_prof)),

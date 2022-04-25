@@ -100,7 +100,7 @@ plot_sample_distributions <- function(set, bins = 100, ncol = 15, what = "abu_no
     ) +
     geom_col(width = w) +
     geom_hline(yintercept = 0, colour = "brown") +
-    geom_vline(xintercept = 0, colour = "brown") +
+    #geom_vline(xintercept = 0, colour = "brown") +
     facet_wrap(~sample, scales = "free_y", ncol = ncol) +
     scale_fill_manual(values = okabe_ito_palette) +
     scale_x_continuous(breaks = x_breaks, limits = x_lim) +
@@ -336,13 +336,19 @@ plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
     filter(n > min_n)
   tab <- dat2mat(d, "fc")
   
-  smpls <- set$metadata %>% 
+  smeta <- set$metadata %>% 
     filter(sample %in% colnames(tab)) %>% 
-    arrange(treatment, day) %>% 
-    pull(sample)
+    arrange(treatment, day, batch)
+  smpls <- smeta %>% pull(sample)
+  divs <- smeta %>%
+    group_by(day) %>% 
+    tally() %>% 
+    mutate(div = cumsum(n))
+  
   tab <- tab[, smpls]
   
-  ggheatmap(tab, order.col = order_col, with.x.text = FALSE, with.y.text = FALSE, dendro.line.size = 0.2, max.fc = max_fc, legend.name = "logFC")
+  ggheatmap(tab, order.col = order_col, with.x.text = FALSE, with.y.text = FALSE, dendro.line.size = 0.2,
+            max.fc = max_fc, legend.name = "logFC", divs = divs$div + 0.5)
 }
 
 
@@ -358,13 +364,14 @@ plot_protein <- function(set, pid, what = "abu_norm") {
     group_by(xi) %>% 
     summarise(M = mean(val))
   rm(set)
-  ggplot(d, aes(x = x, y = val)) +
+  ggplot(d, aes(x = x, y = val, colour = batch)) +
     theme_bw() +
     theme(
       axis.text.x = element_text(angle = 90, vjust = 1, hjust = 0.5),
       panel.grid.major.y = element_blank(),
       panel.grid.minor.y = element_blank()
     ) +
+    scale_colour_manual(values = okabe_ito_palette) +
     geom_quasirandom(width = 0.2, size = 1, alpha = 0.8) +
     geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
     labs(x = NULL, y = what)

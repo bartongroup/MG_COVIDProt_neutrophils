@@ -1,9 +1,10 @@
-make_time_profiles <- function(set, what = "abu_norm") {
-  set$dat %>%
-    mutate(val = get(what) / log10(2)) %>% 
+make_time_profiles <- function(set, treat, what = "abu_norm", sel = NULL) {
+  d <- set$dat %>%
     left_join(set$metadata, by = "sample") %>%
-    filter(treatment == "drug" & !is.na(day)) %>%
+    filter(!bad) %>% 
+    filter(treatment == treat) %>% 
     droplevels() %>% 
+    mutate(val = get(what) / log10(2)) %>% 
     group_by(id, day) %>%
     summarise(m = mean(val)) %>%
     ungroup() %>%
@@ -11,13 +12,17 @@ make_time_profiles <- function(set, what = "abu_norm") {
     arrange(day) %>%
     mutate(dif = m - m[1]) %>%
     ungroup() %>% 
-    pivot_wider(id_cols = id, names_from = day, values_from = dif)
+    pivot_wider(id_cols = id, names_from = day, values_from = dif)  
+  if (!is.null(sel)) {
+    d <- d %>% filter(id %in% sel)
+  }
+  d
 }
 
 cluster_time_profiles <- function(tpr, n_clust = 5) {
   tpr <- drop_na(tpr)
-  X <- tpr %>% 
-    select(-id) %>% 
+  X <- tpr %>%
+    select(-c(id)) %>% 
     as.matrix()
   km <- kmeans(X, centers = n_clust)
   tpr %>% 
@@ -35,7 +40,7 @@ plot_cluster_profiles <- function(tpc) {
     geom_line(alpha = 0.1) +
     geom_point(size = 0.3, alpha = 0.5) +
     geom_hline(yintercept = 0, colour = "brown") +
-    facet_wrap(~ clust) +
+    facet_wrap( ~ clust) +
     labs(x = "Day", y = expression(log[2]~FC))
 }
 
