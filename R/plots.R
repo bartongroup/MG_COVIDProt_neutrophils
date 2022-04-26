@@ -435,3 +435,16 @@ plot_protein_coverage <- function(qc) {
     labs(x = "Proteins", y = "Coverage")
 }
 
+plot_participants <- function(meta) {
+  meta %>%
+    ggplot(aes(x = participant_id, y = day, group = participant_id)) +
+    theme_bw() +
+    theme(
+      panel.grid = element_blank(),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
+    ) +
+    geom_point() +
+    geom_line() +
+    facet_wrap(~ treatment, ncol = 1, scales = "free_x") +
+    labs(x = "Participant ID", y = "Day")
+}

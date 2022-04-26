@@ -11,7 +11,7 @@ METADATA_FILE <- "info/20211103_115953_Identifications_STOP-COVID_proteomics_21.
 MIN_PEPTIDES <- 3
 FDR_LIMIT <- 0.01
 
-BAD_SAMPLES <- c("D5_01-58")
+BAD_SAMPLES <- c("D5_01-45")
 
 make_metadata_ <- function(s_file) {
   read_tsv(s_file, show_col_types = FALSE) %>% 

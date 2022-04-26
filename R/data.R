@@ -65,7 +65,7 @@ read_spectronaut_long_data <- function(data_file, info_file, uni_gene, bad_sampl
       s3 = sprintf("%02d", day),
       s4 = sprintf("%02d", trep)
     ) %>% 
-    mutate(sample = glue::glue("{s1}{s2}_{s3}-{s4}")) %>% 
+    mutate(sample = glue::glue("{s1}{s2}_{s3}-{s4}") %>% as.character()) %>% 
     select(-c(s1, s2, s3, s4, trep)) %>% 
     mutate(across(c(batch, participant_id, day, sex, treatment), as.factor)) %>% 
     mutate(
@@ -248,4 +248,39 @@ cluster_dim <- function(d, n_clust) {
     mutate(clust = km$cluster %>% as_factor())
 }
 
+get_full_participants <- function(meta, days = c(1, 29)) {
+  meta %>% 
+    filter(day %in% days & !bad) %>% 
+    pivot_wider(id_cols = c(participant_id), names_from = day, values_from = sample) %>% 
+    drop_na() %>% 
+    set_names(c("participant_id", "first", "last"))
+}
 
+diff_1_29 <- function(set) {
+  p29 <- get_full_participants(set$metadata)
+  X <- dat2mat(set$dat, what = "abu_norm")
+  
+  dat <- map_dfr(1:nrow(p29), function(i) {
+    r <- p29[i, ]
+    tibble(
+      id = rownames(X) %>% as.integer(),
+      participant_id = r$participant_id,
+      diff = X[, r$last] - X[, r$first]
+    )
+  }) %>% 
+    drop_na() %>% 
+    droplevels() %>% 
+    rename(sample = participant_id)  # fake sapmle for differential abundance scripts
+  
+  meta <- set$metadata %>% 
+    select(participant_id, age, sex, treatment, completion, age_group) %>% 
+    distinct() %>% 
+    filter(participant_id %in% unique(p29$participant_id)) %>% 
+    rename(sample = participant_id) %>% 
+    add_column(bad = FALSE)
+  
+  list(
+    dat = dat,
+    metadata = meta
+  )
+}
