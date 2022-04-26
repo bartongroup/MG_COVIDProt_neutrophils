@@ -7,6 +7,9 @@ output:
     theme:
       bootswatch: journal
       primary: "#2fa4e7"
+editor_options: 
+  markdown: 
+    wrap: 72
 ---
 
 ```{css css_options, echo=FALSE}
@@ -53,25 +56,140 @@ Collaborators: Merete Long, James Chalmers
 
 ## Proposal
 
+### STOP-COVID19: SUPERIORITY TRIAL OF PROTEASE INHIBITION IN COVID-19
+
+Multi-centre prospective, randomized placebo-controlled trial in
+patients presenting to hospital with PCR confirmed COVID-19 (SARS-CoV-2
+infection). Planned Sample Size was 300 across the UK. Treatment
+duration was 28 days, with 29 days follow-up.
+
+#### Study rationale and hypothesis
+
+COVID-19 can cause substantial morbidity and mortality. Mortality in
+acute respiratory distress syndrome (ARDS) correlates directly with the
+extent of neutrophilia in the lung. Both human clinical data and murine
+studies demonstrate a key role for neutrophils in ARDS. Neutrophil
+proteases and particularly neutrophil elastase are believed to be
+central to the neutrophil induced lung damage.
+
+Neutrophil elastase, proteinase-3 and cathepsin-G are activated during
+neutrophil maturation in the bone marrow through dipeptidyl peptidase 1
+(DPP1; also known as cathepsin C), which removes the N-terminal
+dipeptide sequence of neutrophil serine proteases allowing active
+enzymes to be packaged into granules prior to release of neutrophils
+into the circulation. Brensocatib (INS1007, formerly AZD7986) is an
+orally delivered selective, competitive, and reversible inhibitor of
+DPP1. Brensocatib has been shown to inhibit neutrophil serine protease
+activity in blood in both animal models and healthy volunteers and in
+the airways of patients with the chronic respiratory disease
+Bronchiectasis.
+
+**We hypothesised that Brensocatib, by blocking damaging neutrophil
+proteases, would reduce the incidence of acute lung injury and acute
+respiratory distress syndrome (ARDS) in patients with COVID-19, thereby
+resulting in improved clinical outcomes.**
+
+### Study overview
+
+In total 144 participants were enrolled in Dundee, and 17 enrolled in
+Sheffield, both of these sites obtained longitudinal research blood
+samples from participants whilst hospitalised, for exploratory analyses
+to better understand Brensocatib mechanisms of action. Participants were
+also invited to return for sampling a day 29 if discharged, resulting in
+larger sample numbers at day 29 than at intermediate timepoints.
+Isolated peripheral blood neutrophils across various timepoints have
+been processed and analysed with LC-MS, utilising Spectronaut software
+for protein identification.
+
+### Major questions for initial proteomic data analysis
+
+-   Does treatment with Brensocatib alter the COVID-19 peripheral blood
+    neutrophil proteome across the study period, compared with Placebo
+    treatment?
+
+-   Do factors such as age, gender, or time from symptom onset influence
+    responses to Brensocatib within the neutrophil proteome?
+
+-   If possible, the above would be performed in the study population
+    who completed the trial (completed=1), and then would also be
+    performed subsequently as an intention-to-treat analysis, including
+    all participants (both completed=1 and completed=0)
+
+### Data Analysis Group Quotation Reference: 150422-JC03
+
+Project Title: Neutrophil/PBMC proteomic analysis
+
+1.  PI Details
+
+Name Prof. James Chalmers Division Molecular and Clinical Medicine
+School School of Medicine Email
+[j.chalmers\@dundee.ac.uk](mailto:j.chalmers@dundee.ac.uk){.email}
+
+2.  Background
+
+From May 2020 we carried out a trial of dipeptidyl
+peptidase-1/Cathepsin-C inhibitor in hospitalised patients with
+COVID-19. In total enrolled 144 participants in Dundee. We have data
+from around 250 neutrophil samples across various timepoints which have
+been processed and analysed with LC-MS, subsequently utilising
+Spectronaut software for protein identification. Comparisons of drug vs.
+placebo groups at 4-5 timepoints is requested, with possible
+sub-analyses for e.g. age and gender, time from symptom onset. Batch
+correction across 3-5 batches would also be needed, as significant batch
+effects were found in other analyses of the proteomics data. If possible
+we would also do the same thing for the PBMC samples later, however the
+neutrophil data would be a first priority.
+
+3.  Description of Proposed Work
+
+This is a large and complex experiment, so would be better to cost in
+stages. The first stage would include:
+
+-   overview of the data
+
+-   quality control
+
+-   multidimensional analysis: finding important and non-important
+    factors, dealing with batch effects
+
+-   differential abundance on selected conditions (e.g. day 29 vs day 1,
+    drug vs placebo at a given time point)
+
+-   multivariate differential abundance on time + treatment + batch,
+    etc. This might not work if data are not "clean", e.g., if timing
+    behaviour is complex (i.e. not a simple trend)
+
+-   simple timing analysis, identifying proteins consistently changing
+    up or down
+
+-   providing a simple interactive tool to look at the above results
 
 ## Data
 
 ### Spectronaut
 
-Raw data were analysed with [Spectronaut](https://biognosys.com/software/spectronaut). I have received one CSV file at protein level (one row per protein/protein group) with raw and normalised abundances and some additional QC information.
+Raw data were analysed with
+[Spectronaut](https://biognosys.com/software/spectronaut). I have
+received one CSV file at protein level (one row per protein/protein
+group) with raw and normalised abundances and some additional QC
+information.
 
 ### Protein detection
 
-Not all proteins are detected across all `r tar_read(n_samples)` samples. Figure below shows in how many samples each protein was detected, starting from the highest number. There are `r N(tar_read(n_full_detection))` proteins detected across all samples.
+Not all proteins are detected across all `r tar_read(n_samples)`
+samples. Figure below shows in how many samples each protein was
+detected, starting from the highest number. There are
+`r N(tar_read(n_full_detection))` proteins detected across all samples.
 
 ```{r detection, fig.width=10, fig.height=4}
 tar_read(fig_detection)
 ```
 
-
 ## Experiment
 
-We have a lot of samples. There are two treatments (drug and placebo), several time points and batches. Here is a summary of the sample numbers:
+We have a lot of samples. There are two treatments (drug and placebo),
+several time points and batches. Here is a summary of the sample
+numbers:
 
 ```{r meta_day}
 tar_read(metadata) %>%
@@ -92,7 +210,6 @@ tar_read(metadata) %>%
 ```
 
 ## Overview
-
 
 ### Abundance distribution
 
@@ -126,20 +243,30 @@ tar_read(fig_pca)
 tar_read(fig_umap) 
 ```
 
-
 ## Differential abundance
 
 ### Description
 
 #### From limma R vignette
 
-For differential expression we use `limma`. It used an empirical Bayes method to squeeze the peptide-wise residual variances towards a common value (or towards a global trend) (Smyth, 2004; Phipson et al, 2016). The degrees of freedom for the individual variances are increased to reflect the extra information gained from the empirical Bayes moderation, resulting in increased statistical power to detect differential expression.
+For differential expression we use `limma`. It used an empirical Bayes
+method to squeeze the peptide-wise residual variances towards a common
+value (or towards a global trend) (Smyth, 2004; Phipson et al, 2016).
+The degrees of freedom for the individual variances are increased to
+reflect the extra information gained from the empirical Bayes
+moderation, resulting in increased statistical power to detect
+differential expression.
 
-For more information see [Ritchie et al. 2015](https://academic.oup.com/nar/article/43/7/e47/2414268).
+For more information see [Ritchie et al.
+2015](https://academic.oup.com/nar/article/43/7/e47/2414268).
 
 #### In simpler words
 
-`limma` uses a t-test, which is moderated by borrowing data across all peptides. A global variance model is built and moderation squeezes variances towards this global trend. Extreme variances (either large or small) become less extreme, which makes the test more robust to random outliers.
+`limma` uses a t-test, which is moderated by borrowing data across all
+peptides. A global variance model is built and moderation squeezes
+variances towards this global trend. Extreme variances (either large or
+small) become less extreme, which makes the test more robust to random
+outliers.
 
 ### Results
 

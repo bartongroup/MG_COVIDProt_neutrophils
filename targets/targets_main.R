@@ -5,12 +5,13 @@ targets_main <- function() {
     tar_target(bm_genes, biomart_fetch_genes(mart)),
     tar_target(go_terms,  bm_fetch_go(mart, all_genes)),
     tar_target(re_terms, fetch_reactome(mart, all_genes)),
-    tar_target(kg_terms, get_kegg(species = KEGG_SPECIES, bm_genes = bm_genes))
+    tar_target(kg_terms, get_kegg(species = KEGG_SPECIES, bm_genes = bm_genes)),
+    tar_target(uni_gene,  download_uniprot_mapping(UNIPROT_MAPPING_FILE))
     #tar_target(all_terms, list(go = go_terms, gs = gs_terms, re = re_terms, kg = kg_terms))
   )
 
   read_data <- list(
-    tar_target(set, read_spectronaut_long_data(SPECTRONAUT_FILE, METADATA_FILE, UNIPROT_MAPPING_FILE)),
+    tar_target(set, read_spectronaut_long_data(SPECTRONAUT_FILE, METADATA_FILE, uni_gene)),
     tar_target(metadata, set$metadata)
   )
   
@@ -28,14 +29,14 @@ targets_main <- function() {
     tar_target(fig_clustering, plot_clustering(set, colour_var = "batch")),
     tar_target(fig_cormat, plot_distance_matrix(set)),
     tar_target(fig_pca, plot_pca(set, colour_var = "batch", shape_var = "day")),
-    tar_target(fig_umap, plot_umap(set, n_neighbours = 20, min_dist = 0.1, colour_var = "batch", shape_var = "day")),
-    tar_target(png_big_heat, plot_big_heatmap(set) %>% gs("big_heatmap", 20, 49))
+    tar_target(fig_umap, plot_umap(set, n_neighbours = 20, min_dist = 0.1, colour_var = "batch", shape_var = "day"))
+    #tar_target(png_big_heat, plot_big_heatmap(set) %>% gs("big_heatmap", 20, 49))
   )
   
   differential_abundance <- list(
-    tar_target(da, limma_de_f(set, "~ treatment + day + batch")),
-    tar_target(fig_volcano, plot_volcano(da, fdr_limit = FDR_LIMIT)),
-    tar_target(fig_pdist, plot_pdist(da))
+    tar_target(da_full, limma_de_f(set, "~ treatment + day + batch + age_group + sex", filt = "completion"))
+    #tar_target(fig_volcano, plot_volcano(da, fdr_limit = FDR_LIMIT)),
+    #tar_target(fig_pdist, plot_pdist(da))
   )
 
   profiles <- list(

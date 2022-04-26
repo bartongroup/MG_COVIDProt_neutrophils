@@ -11,7 +11,7 @@ METADATA_FILE <- "info/20211103_115953_Identifications_STOP-COVID_proteomics_21.
 MIN_PEPTIDES <- 3
 FDR_LIMIT <- 0.01
 
-BAD_SAMPLES <- c("D-01-267")
+BAD_SAMPLES <- c("D5_01-58")
 
 make_metadata_ <- function(s_file) {
   read_tsv(s_file, show_col_types = FALSE) %>% 
@@ -31,13 +31,11 @@ make_metadata_ <- function(s_file) {
 }
 
 
-ctr_compare_days <- function(des) {
-  limma::makeContrasts(
-    treat_daydrug_1-treat_dayplacebo_1,
-    treat_daydrug_8-treat_dayplacebo_8,
-    treat_daydrug_15-treat_dayplacebo_15,
-    treat_daydrug_29-treat_dayplacebo_29,
-    levels = des
-  )
-}
+CONTRASTS_COMPARE_DAYS <- c(
+  "drug_1-placebo_1",
+  "drug_8-placebo_8",
+  "drug_15-placebo_15",
+  "drug_29-placebo_29"
+)
+
 

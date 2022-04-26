@@ -65,6 +65,34 @@ plot_pdist <- function(res, p = "PValue", group = "contrast", n_bins = 50) {
 }
 
 
+plot_up_down <- function(res, fc = "logFC", fdr = "FDR", group = "contrast", fdr_limit = 0.05) {
+  r <- res %>%
+    mutate(
+      direction = if_else(get(fc) > 0, "up", "down"),
+      sig = get(fdr) < fdr_limit,
+      group = get(group)
+    ) %>% 
+    filter(sig) %>% 
+    group_by(group, direction, .drop = FALSE) %>% 
+    tally() %>%
+    mutate(x = if_else(direction == "down", -n, n)) %>% 
+    mutate(adj = -1.3 * sign(x) / 2 + 0.5)
+  rm(res)
+  ggplot(r, aes(x = x, y = group, fill = direction)) +
+    theme_bw() +
+    theme(
+      panel.grid = element_blank(),
+      legend.position = "none"
+    ) +
+    geom_vline(xintercept = 0, colour = "grey50") +
+    geom_col() +
+    scale_fill_manual(values = okabe_ito_palette) +
+    geom_text(aes(label = n, hjust = adj)) +
+    scale_x_continuous(expand = expansion(mult = c(0.2, 0.2))) +
+    labs(x = "Count", y = "Coefficient")
+}
+
+
 make_hist <- function(x, bins) {
   h <- hist(x, breaks = bins, plot = FALSE)
   tibble(
@@ -319,7 +347,8 @@ plot_unique_pep <- function(set, min_pep) {
 
 
 plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
-                             id_sel = NULL, sample_sel = NULL, order_col = TRUE) {
+                             id_sel = NULL, sample_sel = NULL, order_col = TRUE,
+                             text.size = 8) {
   d <- set$dat %>% 
     mutate(val = get(what))
   if (!is.null(sample_sel))
@@ -337,8 +366,8 @@ plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
   tab <- dat2mat(d, "fc")
   
   smeta <- set$metadata %>% 
-    filter(sample %in% colnames(tab)) %>% 
-    arrange(treatment, day, batch)
+    filter(sample %in% colnames(tab) & !bad) %>% 
+    arrange(day, treatment, batch)
   smpls <- smeta %>% pull(sample)
   divs <- smeta %>%
     group_by(day) %>% 
@@ -347,34 +376,39 @@ plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
   
   tab <- tab[, smpls]
   
-  ggheatmap(tab, order.col = order_col, with.x.text = FALSE, with.y.text = FALSE, dendro.line.size = 0.2,
+  ggheatmap(tab, order.col = order_col, with.x.text = TRUE, with.y.text = FALSE,
+            dendro.line.size = 0.2, text.size = text.size,
             max.fc = max_fc, legend.name = "logFC", divs = divs$div + 0.5)
 }
 
 
-plot_protein <- function(set, pid, what = "abu_norm") {
+plot_protein <- function(set, pid, what = "abu_norm", colour_var = "batch") {
   d <- set$dat %>%
     mutate(val = get(what)) %>% 
     filter(id == pid) %>%
     left_join(set$metadata, by = "sample") %>% 
+    rename(colvar = !!colour_var) %>% 
     arrange(treatment, day) %>% 
     unite(x, c(treatment, day)) %>% 
     mutate(x = as_factor(x), xi = as.integer(x))
   dm <- d %>% 
     group_by(xi) %>% 
     summarise(M = mean(val))
+  info <- set$info %>% 
+    filter(id == pid)
+  tit <- glue::glue("{info$protein_accessions} {info$gene_names} : {info$protein_descriptions}")
   rm(set)
-  ggplot(d, aes(x = x, y = val, colour = batch)) +
+  ggplot(d, aes(x = x, y = val, colour = colvar)) +
     theme_bw() +
     theme(
       axis.text.x = element_text(angle = 90, vjust = 1, hjust = 0.5),
       panel.grid.major.y = element_blank(),
       panel.grid.minor.y = element_blank()
     ) +
-    scale_colour_manual(values = okabe_ito_palette) +
+    scale_colour_manual(values = okabe_ito_palette, name = colour_var) +
     geom_quasirandom(width = 0.2, size = 1, alpha = 0.8) +
     geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
-    labs(x = NULL, y = what)
+    labs(x = NULL, y = what, title = tit)
 }
 
 

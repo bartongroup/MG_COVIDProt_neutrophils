@@ -5,7 +5,7 @@ download_uniprot_mapping <- function(uri) {
 }
 
 
-read_spectronaut_long_data <- function(data_file, info_file, uni_file, bad_samples = BAD_SAMPLES) {
+read_spectronaut_long_data <- function(data_file, info_file, uni_gene, bad_samples = BAD_SAMPLES) {
   meta <- readxl::read_excel(info_file, na = "n/a") %>% 
     set_names(c(
       "batch",
@@ -29,11 +29,21 @@ read_spectronaut_long_data <- function(data_file, info_file, uni_file, bad_sampl
       completion = as.logical(completion),
       sex = toupper(sex),
       on_drug = str_remove(on_drug, "\\s\\(discontinued\\)"),
-      delay = if_else(time_from_symptoms > 10, "large", "small")
-    ) %>% 
-    unite(treat_day, c(treatment, day), sep = "_", remove = FALSE)
-  
-  uni_gene <- download_uniprot_mapping(uni_file)
+      delay = if_else(time_from_symptoms > 10, "large", "small"),
+      age_group = case_when(
+        age < 50 ~ "<50",
+        age >= 50 & age < 65 ~ "50-65",
+        age >= 65 & age < 80 ~ "65-80",
+        age >= 80 ~ ">80"
+      )
+    ) %>%
+    arrange(age) %>% 
+    mutate(age_group = as_factor(age_group)) %>% 
+    arrange(treatment, day, batch) %>% 
+    unite(treat_day, c(treatment, day), sep = "_", remove = FALSE) %>% 
+    group_by(treatment, day) %>% 
+    mutate(trep = row_number()) %>% 
+    ungroup()
   
   raw <- read_tsv(data_file, show_col_types = FALSE) %>% 
     rename_with(.fn = ~str_remove(., "^R.|^PG.")) %>% 
@@ -48,14 +58,15 @@ read_spectronaut_long_data <- function(data_file, info_file, uni_file, bad_sampl
     distinct()
   
   metadata <- meta %>% 
-    left_join(samrep, by = "raw_sample") %>% 
+    left_join(samrep, by = "raw_sample") %>%
     mutate(
       s1 = recode(treatment, "drug" = "D", "placebo" = "P"),
-      s2 = sprintf("%02d", day),
-      s3 = seq_along(participant_id)
+      s2 = as.character(batch),
+      s3 = sprintf("%02d", day),
+      s4 = sprintf("%02d", trep)
     ) %>% 
-    unite(sample, c(s1, s2, s3), sep = "-", remove = FALSE) %>% 
-    select(-c(s1, s2, s3)) %>% 
+    mutate(sample = glue::glue("{s1}{s2}_{s3}-{s4}")) %>% 
+    select(-c(s1, s2, s3, s4, trep)) %>% 
     mutate(across(c(batch, participant_id, day, sex, treatment), as.factor)) %>% 
     mutate(
       treatment = fct_relevel(treatment, "placebo"),
@@ -72,7 +83,13 @@ read_spectronaut_long_data <- function(data_file, info_file, uni_file, bad_sampl
     select(id, uniprot = protein_accessions) %>%
     separate_rows(uniprot, sep = ";") %>%
     distinct() %>%
+    mutate(uniprot = str_remove(uniprot, "\\-\\d+$")) %>% 
     left_join(uni_gene, by = c("uniprot"))
+  gene_names <- id_prot_gene %>%
+    group_by(id) %>%
+    summarise(gene_names = str_c(unique(gene_name), collapse = ";"))
+  info <- info %>% 
+    left_join(gene_names, by = "id")
   
   d <- raw %>% 
     left_join(select(info, id, protein_accessions), by = "protein_accessions") %>% 
