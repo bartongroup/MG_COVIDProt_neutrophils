@@ -1,5 +1,6 @@
 library(targets)
 library(tarchetypes)
+library(qs)
 
 options(tidyverse.quiet = TRUE, dplyr.summarise.inform = FALSE)
 

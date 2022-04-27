@@ -53,7 +53,7 @@ ggheatmap <- function(tab, order.col = TRUE, order.row = TRUE, dendro.line.size 
   
   if (palette == "viridis") {
     heat_plot <- heat_plot +
-      scale_fill_viridis_c(option = "cividis", name = legend.name)
+      viridis::scale_fill_viridis_c(option = "cividis", name = legend.name)
   } else {
     heat_plot <- heat_plot +
       scale_fill_distiller(type = "div", palette = "RdBu", limits = c(-mx, mx), name = legend.name)

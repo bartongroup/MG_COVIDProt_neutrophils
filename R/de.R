@@ -10,7 +10,7 @@ limma_de <- function(set, contrasts = NULL, group_var = "treatment", what = "abu
   design_mat <- model.matrix(~ 0 + group, data = meta)
   colnames(design_mat) <- groups
   
-  tab <- dat2mat(set$dat, what)[, meta$sample]
+  tab <- dat2mat(set$dat, what)[, meta$sample] / log10(2)
   
   if (is.null(contrasts)) {
     contrasts <- expand_grid(x = as_factor(groups), y = as_factor(groups)) %>%
@@ -18,15 +18,15 @@ limma_de <- function(set, contrasts = NULL, group_var = "treatment", what = "abu
       unite(contrast, c(y, x), sep = "-") %>%
       pull(contrast)
   }
-  contrast_mat <- makeContrasts(contrasts = contrasts, levels = design_mat)
+  contrast_mat <- limma::makeContrasts(contrasts = contrasts, levels = design_mat)
 
   fit <- tab %>%
-    lmFit(design_mat) %>%
-    contrasts.fit(contrasts = contrast_mat) %>%
-    eBayes()
+    limma::lmFit(design_mat) %>%
+    limma::contrasts.fit(contrasts = contrast_mat) %>%
+    limma::eBayes()
   
   map_dfr(contrasts, function(ctr) {
-    topTable(fit, coef = ctr, number = 1e6, sort.by = "none") %>%
+    limma::topTable(fit, coef = ctr, number = 1e6, sort.by = "none") %>%
       as_tibble(rownames = "id") %>%
       mutate(across(c(id), as.integer)) %>% 
       rename(FDR = adj.P.Val, PValue = P.Value) %>%
@@ -37,12 +37,9 @@ limma_de <- function(set, contrasts = NULL, group_var = "treatment", what = "abu
     mutate(contrast = factor(contrast, levels = contrasts))
 }
 
-
-
-
 # DE with formula
 limma_de_f <- function(set, formula, what = "abu_norm", filt = "TRUE") {
-  tab <- dat2mat(set$dat, what)
+  tab <- dat2mat(set$dat, what) / log10(2)
   meta <- set$metadata %>% 
     filter(!bad & !!rlang::parse_expr(filt)) %>% 
     droplevels()
@@ -52,11 +49,11 @@ limma_de_f <- function(set, formula, what = "abu_norm", filt = "TRUE") {
   coefs <- colnames(design_mat)[-1]
   
   fit <- tab %>%
-    lmFit(design_mat) %>%
-    eBayes()
+    limma::lmFit(design_mat) %>%
+    limma::eBayes()
   
   res <- map_dfr(coefs, function(cf) {
-    topTable(fit, coef = cf, number = 1e6, sort.by = "none") %>%
+    limma::topTable(fit, coef = cf, number = 1e6, sort.by = "none") %>%
       as_tibble(rownames = "id") %>%
       mutate(id = as.integer(id)) %>% 
       mutate(contrast = cf) %>%
@@ -69,8 +66,30 @@ limma_de_f <- function(set, formula, what = "abu_norm", filt = "TRUE") {
   res
 }
 
-
-
+# one-sample limma against zero
+limma_de_ratio <- function(df, what = "logFC", id_var = "participant_id", filt = "TRUE") {
+  meta <- df$metadata %>% 
+    filter(!bad & !!rlang::parse_expr(filt)) %>% 
+    droplevels()
+  
+  tab <- dat2mat(df$dat, what = what, names = id_var)
+  tab <- tab[, as.character(meta[[id_var]])]
+  
+  design_mat <- cbind(Intercept = rep(1, ncol(tab)))
+  fit <- tab %>%
+    limma::lmFit(design_mat) %>%
+    limma::eBayes()
+  
+  res <- limma::topTable(fit, number = 1e6, sort.by = "none") %>%
+      as_tibble(rownames = "id") %>%
+      mutate(id = as.integer(id)) %>% 
+      rename(FDR = adj.P.Val, PValue = P.Value) %>%
+      select(-c(t, B)) %>% 
+      add_column(contrast = "ratio") %>% 
+      drop_na()
+  
+  res
+}
 
 
 

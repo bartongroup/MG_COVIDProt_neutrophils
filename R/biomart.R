@@ -1,5 +1,5 @@
 biomart_fetch_genes <- function(mart) {
-  getBM(attributes = c(
+  biomaRt::getBM(attributes = c(
     "chromosome_name",
     "start_position",
     "end_position",
@@ -30,7 +30,7 @@ biomart_fetch_genes <- function(mart) {
 
 bm_fetch_go_genes <- function(mart, gene_names, slim = FALSE) {
   id <- ifelse(slim, "goslim_goa_accession", "go_id")
-  gene2go <- getBM(
+  gene2go <- biomaRt::getBM(
     attributes = c("external_gene_name", id),
     filters = "external_gene_name",
     values = gene_names,
@@ -45,7 +45,7 @@ bm_fetch_go_genes <- function(mart, gene_names, slim = FALSE) {
 
 bm_fetch_go_descriptions <- function(mart) {
   # filtering on GO-terms does not work properly, so I have to fetch all terms
-  getBM(
+  biomaRt::getBM(
     attributes = c("go_id", "name_1006", "namespace_1003"),
     mart = mart) %>%
     dplyr::rename(
@@ -97,7 +97,7 @@ bm_fetch_go <- function(mart, gene_names, slim = FALSE) {
 # Reactome
 
 reactome_fetch_genes <- function(mart, gene_names) {
-  gene2re <- getBM(
+  gene2re <- biomaRt::getBM(
     attributes = c("external_gene_name", "reactome"),
     filters = "external_gene_name",
     values = gene_names,

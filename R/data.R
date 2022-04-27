@@ -201,9 +201,9 @@ select_detected_proteins <- function(set) {
 }
 
 
-dat2mat <- function(dat, what="abu_norm") {
+dat2mat <- function(dat, what = "abu_norm", names = "sample") {
   dat %>% 
-    pivot_wider(id_cols = id, names_from = sample, values_from = !!what) %>% 
+    pivot_wider(id_cols = id, names_from = !!names, values_from = !!what) %>% 
     column_to_rownames("id") %>% 
     as.matrix()
 }
@@ -251,36 +251,39 @@ cluster_dim <- function(d, n_clust) {
 get_full_participants <- function(meta, days = c(1, 29)) {
   meta %>% 
     filter(day %in% days & !bad) %>% 
-    pivot_wider(id_cols = c(participant_id), names_from = day, values_from = sample) %>% 
+    pivot_wider(id_cols = c(participant_id), names_from = day, values_from = c(sample, batch)) %>% 
     drop_na() %>% 
-    set_names(c("participant_id", "first", "last"))
+    set_names(c("participant_id", "first", "last", "first_batch", "last_batch"))
 }
 
-diff_1_29 <- function(set) {
-  p29 <- get_full_participants(set$metadata)
+logfc_days <- function(set, days = c(1, 29)) {
+  pd <- get_full_participants(set$metadata, days)
   X <- dat2mat(set$dat, what = "abu_norm")
+  X <- X / log10(2)   # we are going to find log2_FC
   
-  dat <- map_dfr(1:nrow(p29), function(i) {
-    r <- p29[i, ]
+  dat <- map_dfr(1:nrow(pd), function(i) {
+    r <- pd[i, ]
     tibble(
       id = rownames(X) %>% as.integer(),
       participant_id = r$participant_id,
-      diff = X[, r$last] - X[, r$first]
+      logFC = X[, r$last] - X[, r$first]
     )
   }) %>% 
     drop_na() %>% 
-    droplevels() %>% 
-    rename(sample = participant_id)  # fake sapmle for differential abundance scripts
+    droplevels()
   
   meta <- set$metadata %>% 
     select(participant_id, age, sex, treatment, completion, age_group) %>% 
     distinct() %>% 
-    filter(participant_id %in% unique(p29$participant_id)) %>% 
-    rename(sample = participant_id) %>% 
+    filter(participant_id %in% unique(pd$participant_id)) %>% 
+    left_join(select(pd, participant_id, first_batch, last_batch), by = "participant_id") %>% 
+    unite(batches, c(first_batch, last_batch), sep = "-") %>% 
     add_column(bad = FALSE)
   
   list(
     dat = dat,
-    metadata = meta
+    metadata = meta,
+    info = set$info,
+    id_prot_gene = set$id_prot_gene
   )
 }

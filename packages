@@ -1,13 +1,12 @@
 tidyverse
 janitor
-scattermore
 dendsort
 ggdendro
 cowplot
-viridis
-ggrepel
 uwot
 broom
 biomaRt
 ggbeeswarm
+viridis
 limma
+qs

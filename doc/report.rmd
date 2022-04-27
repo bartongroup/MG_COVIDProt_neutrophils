@@ -174,22 +174,19 @@ received one CSV file at protein level (one row per protein/protein
 group) with raw and normalised abundances and some additional QC
 information.
 
-### Protein detection
-
-Not all proteins are detected across all `r tar_read(n_samples)`
-samples. Figure below shows in how many samples each protein was
-detected, starting from the highest number. There are
-`r N(tar_read(n_full_detection))` proteins detected across all samples.
-
-```{r detection, fig.width=10, fig.height=4}
-tar_read(fig_detection)
-```
 
 ## Experiment
 
 We have a lot of samples. There are two treatments (drug and placebo),
 several time points and batches. Here is a summary of the sample
 numbers:
+
+```{r fig_counts, fig.width=4, fig.height=5}
+tar_read(fig_counts)
+```
+
+
+More details in tabular form:
 
 ```{r meta_day}
 tar_read(metadata) %>%
@@ -209,7 +206,20 @@ tar_read(metadata) %>%
   merge_v(j = 1)
 ```
 
+
 ## Overview
+
+
+### Protein detection
+
+Not all proteins are detected across all `r tar_read(n_samples)`
+samples. Figure below shows in how many samples each protein was
+detected, starting from the highest number. There are
+`r N(tar_read(n_full_detection))` proteins detected across all samples.
+
+```{r detection, fig.width=10, fig.height=4}
+tar_read(fig_detection)
+```
 
 ### Abundance distribution
 
@@ -270,8 +280,8 @@ outliers.
 
 ### Results
 
-```{r fig_pep_volcano, fig.width=12, fig.height=4}
-tar_read(fig_volcano)
+```{r fig_ma_full, fig.width=12, fig.height=4}
+tar_read(fig_ma_full)
 ```
 
 ## Resources

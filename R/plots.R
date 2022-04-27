@@ -14,15 +14,24 @@ plot_volma <- function(res, p, fdr, group, fdr_limit, point_size, point_alpha) {
     ) %>% 
     select(x, y, sig, group)
   rm(res)  # Minimise environment for serialisation
-  ggplot(r, aes(x = x, y = y, colour = sig)) +
+  r_sig <- r %>% filter(sig)
+  r_nsig <- r %>% filter(!sig)
+  
+  g <- ggplot() +
     theme_bw() +
     theme(
       panel.grid = element_blank(),
       legend.position = "none"
     ) +
-    geom_point(size = point_size, alpha = point_alpha) +
-    scale_colour_manual(values = c("grey70", "black")) +
+    geom_point(data = r_nsig, aes(x = x, y = y), colour = "grey70",
+               size = point_size, alpha = point_alpha) +
     facet_grid(. ~ group) 
+  
+  if (nrow(r_sig) > 0) {
+    g <- g + geom_point(data = r_sig, aes(x = x, y = y), colour = "black",
+                        size = point_size, alpha = point_alpha)
+  }
+  g
 }
 
 plot_ma <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR", group = "contrast",
@@ -214,7 +223,7 @@ plot_distance_matrix <- function(set, what = "abu_norm", text_size = 10) {
   rm(set, tab)
   ggplot(d, aes(x = sample, y = name)) +
     geom_tile(aes(fill = value)) +
-    scale_fill_viridis(option = "cividis") +
+    viridis::scale_fill_viridis(option = "cividis") +
     theme(
       axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = text_size),
       axis.text.y = element_text(size = text_size)
@@ -272,13 +281,22 @@ plot_pca <- function(set, point_size = 2, what = "abu_norm", colour_var = "treat
 
 plot_umap <- function(set, what = "abu_norm", point_size = 2, seed = 1,
                       n_neighbours = 15, min_dist = 0.01,
+                      id_sel = NULL, sample_sel = NULL,
                       colour_var = "treatment", shape_var = "day") {
   tab <- dat2mat(set$dat, what)
+  meta <- set$metadata
+  
+  if (!is.null(id_sel))
+    tab <- tab[as.character(id_sel), ]
+  if (!is.null(sample_sel)) {
+    tab <- tab[, sample_sel]
+    meta <- meta %>% filter(sample %in% sample_sel)
+  }
   
   set.seed(seed)
   tab <- tab[apply(tab, 1, function(v) sum(is.na(v)) == 0), ]
   uwot::umap(t(tab), n_neighbors = n_neighbours, min_dist = min_dist) %>% 
-    umap2xy(set$metadata) %>% 
+    umap2xy(meta) %>% 
     plot_xy(colour_var, shape_var, point_size)
 }
 
@@ -367,18 +385,24 @@ plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
   
   smeta <- set$metadata %>% 
     filter(sample %in% colnames(tab) & !bad) %>% 
-    arrange(day, treatment, batch)
+    arrange(day, treatment, batch)  
   smpls <- smeta %>% pull(sample)
-  divs <- smeta %>%
-    group_by(day) %>% 
-    tally() %>% 
-    mutate(div = cumsum(n))
   
   tab <- tab[, smpls]
   
+  if (is.null(order_col)) {
+    divs <- smeta %>%
+      group_by(day) %>% 
+      tally() %>% 
+      mutate(div = cumsum(n) + 0.5)
+  } else {
+    divs <- NULL
+  }
+  
+  
   ggheatmap(tab, order.col = order_col, with.x.text = TRUE, with.y.text = FALSE,
             dendro.line.size = 0.2, text.size = text.size,
-            max.fc = max_fc, legend.name = "logFC", divs = divs$div + 0.5)
+            max.fc = max_fc, legend.name = "logFC", divs = divs)
 }
 
 
@@ -406,9 +430,29 @@ plot_protein <- function(set, pid, what = "abu_norm", colour_var = "batch") {
       panel.grid.minor.y = element_blank()
     ) +
     scale_colour_manual(values = okabe_ito_palette, name = colour_var) +
-    geom_quasirandom(width = 0.2, size = 1, alpha = 0.8) +
+    ggbeeswarm::geom_quasirandom(width = 0.2, size = 1, alpha = 0.8) +
     geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
     labs(x = NULL, y = what, title = tit)
+}
+
+
+plot_lograt_protein <- function(df, pid) {
+  d <- df$dat %>% 
+    filter(id == pid) %>% 
+    left_join(df$metadata, by = "participant_id")
+  info <- set$info %>% 
+    filter(id == pid)
+  tit <- glue::glue("{info$protein_accessions} {info$gene_names} : {info$protein_descriptions}")
+  rm(df)
+  ggplot(d, aes(x = treatment, y = logFC, colour = batches)) +
+    theme_bw() +
+    theme(
+      panel.grid = element_blank()
+    ) +
+    geom_hline(yintercept = 0, colour = "grey50") +
+    geom_beeswarm() +
+    scale_colour_manual(values = okabe_ito_palette) +
+    labs(x = NULL, y = expression(log[2]~I[29]/I[1]), title = tit)
 }
 
 
@@ -436,15 +480,37 @@ plot_protein_coverage <- function(qc) {
 }
 
 plot_participants <- function(meta) {
+  pp <- get_full_participants(meta)
   meta %>%
-    ggplot(aes(x = participant_id, y = day, group = participant_id)) +
+    left_join(pp, by = "participant_id") %>% 
+    mutate(good = !is.na(first)) %>% 
+  ggplot(aes(x = participant_id, y = day, group = participant_id, colour = good)) +
     theme_bw() +
     theme(
       panel.grid = element_blank(),
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      legend.position = "none"
     ) +
     geom_point() +
     geom_line() +
+    scale_colour_manual(values = c("grey", "black")) +
     facet_wrap(~ treatment, ncol = 1, scales = "free_x") +
     labs(x = "Participant ID", y = "Day")
+}
+
+
+plot_meta_numbers <- function(meta) {
+  meta %>% 
+    group_by(treatment, day, batch) %>% 
+    tally() %>% 
+  ggplot(aes(x = day, y = n, fill = batch)) +
+    theme_bw() +
+    theme(
+      panel.grid = element_blank()
+    ) +
+    geom_col(position = "stack", colour = "grey50") +
+    scale_fill_manual(values = okabe_ito_palette) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
+    facet_wrap(~treatment, ncol = 1) +
+    labs(x = "Day", y = "Count", fill = "Batch")
 }
