@@ -112,11 +112,12 @@ fgsea_cache <- function(d, terms, file, valvar = "logFC", groupvar = "contrast")
   fg
 }
 
-fgsea_all_terms <- function(d, all_terms, valvar = "logFC", groupvar = "contrast") {
+fgsea_all_terms <- function(d, all_terms, valvar = "logFC", groupvar = "contrast", prefix = NULL) {
   nms <- names(all_terms)
   map(nms, function(trm) {
     cat(str_glue("  Computing fgsea for {trm}\n\n"))
-    cache_file <- file.path("cache", str_glue("fgsea_{trm}.rds"))
+    cache_file <- ifelse(is.null(prefix), str_glue("fgsea_{trm}.rds"), str_glue("fgsea_{prefix}_{trm}.rds"))
+    cache_file <- file.path("cache", cache_file)
     fgsea_cache(d, all_terms[[trm]], cache_file, valvar, groupvar)
   }) %>%
     set_names(nms)
@@ -147,4 +148,46 @@ select_star_go <- function(se, bm_go, terms) {
   bm_go$gene2term %>%
     filter(term_id %in% terms) %>%
     inner_join(se, by = "gene_name")
+}
+
+
+tissue_score <- function(ts, prof) {
+  good_levels <- c("Low", "Medium", "High")
+  m <- ts %>% 
+    full_join(prof, by = "gene_name") %>% 
+    filter(level.x %in% good_levels & level.y %in% good_levels) %>% 
+    drop_na()
+  fit <- lm(m ~ level.x, data = m)
+  ...
+}
+
+match_tissue <- function(set, tis) {
+  # Human Protein Atlas tissue genes
+  tis <- tis %>% 
+    janitor::clean_names()
+  tg <- tis %>% select(gene_name) %>% distinct()
+  # quantile levels <25% = low, 25%-75% = medium, >75% - high
+  d <- set$dat %>% 
+    group_by(id) %>% 
+    summarise(m = mean(abu_norm))
+  q <- quantile(d$m, c(0.25, 0.75))
+  # Build protein profile for our data
+  prof <- d %>% 
+    mutate(level = case_when(
+      m <= q[1] ~ "Low",
+      m > q[1] & m <= q[2] ~ "Medium",
+      m > q[2] ~ "High")
+    ) %>% 
+    add_genes(set$info) %>% 
+    right_join(tg, by = "gene_name") %>% 
+    mutate(level = replace_na(level, "Not detected"))
+  
+  tissues <- tis$tissue %>% unique()
+  map_dfr(tissues, function(ts) {
+    tibble(
+      tissue = ts,
+      match_score = tissue_score(tis %>% filter(tissue == ts), prof)
+    )
+  }) %>% 
+    arrange(desc(match_score))
 }

@@ -13,10 +13,11 @@ plot_volma <- function(res, p, fdr, group, fdr_limit, point_size, point_alpha) {
       group = get(group)
     ) %>% 
     select(x, y, sig, group)
-  rm(res)  # Minimise environment for serialisation
   r_sig <- r %>% filter(sig)
   r_nsig <- r %>% filter(!sig)
-  
+
+  rm(res, r)  # Minimise environment for serialisation
+    
   g <- ggplot() +
     theme_bw() +
     theme(
@@ -25,7 +26,7 @@ plot_volma <- function(res, p, fdr, group, fdr_limit, point_size, point_alpha) {
     ) +
     geom_point(data = r_nsig, aes(x = x, y = y), colour = "grey70",
                size = point_size, alpha = point_alpha) +
-    facet_grid(. ~ group) 
+    facet_wrap( ~ group) 
   
   if (nrow(r_sig) > 0) {
     g <- g + geom_point(data = r_sig, aes(x = x, y = y), colour = "black",
@@ -406,33 +407,37 @@ plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
 }
 
 
-plot_protein <- function(set, pid, what = "abu_norm", colour_var = "batch") {
+plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch") {
+  info <- set$info %>% 
+    filter(id %in% pids) %>% 
+    mutate(prot = glue::glue("{protein_accessions} {gene_names}: {protein_descriptions}"))
   d <- set$dat %>%
     mutate(val = get(what)) %>% 
-    filter(id == pid) %>%
+    filter(id %in% pids) %>%
     left_join(set$metadata, by = "sample") %>% 
     rename(colvar = !!colour_var) %>% 
     arrange(treatment, day) %>% 
     unite(x, c(treatment, day)) %>% 
-    mutate(x = as_factor(x), xi = as.integer(x))
+    mutate(x = as_factor(x), xi = as.integer(x)) %>% 
+    left_join(info, by = "id") %>% 
+    select(id, prot, x, xi, val, colvar)
   dm <- d %>% 
-    group_by(xi) %>% 
+    group_by(id, prot, xi) %>% 
     summarise(M = mean(val))
-  info <- set$info %>% 
-    filter(id == pid)
   tit <- glue::glue("{info$protein_accessions} {info$gene_names} : {info$protein_descriptions}")
   rm(set)
   ggplot(d, aes(x = x, y = val, colour = colvar)) +
     theme_bw() +
     theme(
-      axis.text.x = element_text(angle = 90, vjust = 1, hjust = 0.5),
+      axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
       panel.grid.major.y = element_blank(),
       panel.grid.minor.y = element_blank()
     ) +
     scale_colour_manual(values = okabe_ito_palette, name = colour_var) +
     ggbeeswarm::geom_quasirandom(width = 0.2, size = 1, alpha = 0.8) +
     geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
-    labs(x = NULL, y = what, title = tit)
+    facet_wrap(~ prot) +
+    labs(x = NULL, y = what)
 }
 
 
@@ -511,6 +516,22 @@ plot_meta_numbers <- function(meta) {
     geom_col(position = "stack", colour = "grey50") +
     scale_fill_manual(values = okabe_ito_palette) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
-    facet_wrap(~treatment, ncol = 1) +
+    facet_wrap(~treatment, nrow = 1) +
     labs(x = "Day", y = "Count", fill = "Batch")
 }
+
+plot_fc_fc <- function(df1, df2, info, labx = "x", laby = "y", logfc_limit = 0.01, dif_limit = 1) {
+  d <- df1 %>%
+    full_join(df2, by = "id") %>%
+    left_join(info, by = "id") %>%
+    filter(FDR.x < logfc_limit | FDR.y < logfc_limit) %>% 
+    mutate(dif = abs(logFC.x - logFC.y))
+  
+  ggplot(d, aes(x = logFC.x, y = logFC.y)) +
+    theme_bw() +
+    geom_point(colour = "grey50") +
+    geom_abline(slope = 1, intercept = 0, colour = "red") +
+    geom_text_repel(data = d %>% filter(dif > dif_limit), aes(label = gene_names)) +
+    labs(x = labx, y = laby)
+}
+

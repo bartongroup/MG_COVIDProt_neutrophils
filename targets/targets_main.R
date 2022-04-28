@@ -6,8 +6,8 @@ targets_main <- function() {
     tar_target(go_terms,  bm_fetch_go(mart, all_genes)),
     tar_target(re_terms, fetch_reactome(mart, all_genes)),
     tar_target(kg_terms, get_kegg(species = KEGG_SPECIES, bm_genes = bm_genes)),
-    tar_target(uni_gene,  download_uniprot_mapping(UNIPROT_MAPPING_FILE))
-    #tar_target(all_terms, list(go = go_terms, gs = gs_terms, re = re_terms, kg = kg_terms))
+    tar_target(uni_gene,  download_uniprot_mapping(UNIPROT_MAPPING_FILE)),
+    tar_target(all_terms, list(go = go_terms, re = re_terms, kg = kg_terms))
   )
 
   read_data <- list(
@@ -39,16 +39,28 @@ targets_main <- function() {
   differential_abundance <- list(
     tar_target(base_filter, "completion & batch %in% c(3, 4, 5)"),
     tar_target(da_full, limma_de_f(set, "~ treatment + day + batch + age_group + sex", filt = base_filter)),
+    tar_target(da_batch, limma_de(set, contrasts = c("x5-x4", "x5-x3", "x4-x3"), group_var = "batch")),
     tar_target(da_day1, limma_de_f(set, "~ treatment + batch + age_group + sex", filt = paste(base_filter, "& day == 1"))),
     tar_target(da_day29, limma_de_f(set, "~ treatment + batch + age_group + sex", filt = paste(base_filter, "& day == 29"))),
     
-    tar_target(fig_ma_full, plot_ma(da_full)),
-    tar_target(fig_ma_day1, plot_ma(da_day1)),
-    tar_target(fig_ma_day29, plot_ma(da_day29)),
+    tar_target(fig_ma_full, plot_ma(da_full) + ylim(-10, 10)),
+    tar_target(fig_ma_batch, plot_ma(da_batch) + ylim(-10, 10)),
+    tar_target(fig_ma_day1, plot_ma(da_day1) + ylim(-10, 10)),
+    tar_target(fig_ma_day29, plot_ma(da_day29) + ylim(-10, 10)),
     
     tar_target(lograt, logfc_days(set)),
     tar_target(dd_drug, limma_de_ratio(lograt, filt = "treatment == 'drug'")),
-    tar_target(dd_placebo, limma_de_ratio(lograt, filt = "treatment == 'placebo'"))
+    tar_target(dd_placebo, limma_de_ratio(lograt, filt = "treatment == 'placebo'")),
+    tar_target(dd_all, bind_rows(dd_drug %>% mutate(contrast = "drug"), dd_placebo %>% mutate(contrast = "placebo"))),
+    tar_target(fig_volcano_dd, plot_volcano(dd_all)),
+
+    tar_target(fig_batch_examples, plot_protein(set, pids = BATCH_EXAMPLES))
+  )
+  
+  
+  fgsea <- list(
+    tar_target(gse_dd, fgsea_all_terms(add_genes(dd_all, set$info), all_terms, prefix = "dd")),
+    tar_target(gse_batch5, fgsea_all_terms(add_genes(da_full %>% filter(contrast == "batch5"), set$info), all_terms, prefix = "batch5"))
   )
 
   profiles <- list(
@@ -60,6 +72,8 @@ targets_main <- function() {
   )
   
   for_report <- list(
+    tar_target(spectronaut_columns, get_file_columns(SPECTRONAUT_FILE)),
+    tar_target(max_qvalue, max(set$qc$qvalue, na.rm = TRUE)),
     tar_target(n_all_proteins, nrow(set$info)),
     tar_target(n_hit_proteins, set$dat$id %>% unique() %>% length()),
     tar_target(n_full_detection, detection_samples(set)$n[1]),
@@ -73,6 +87,7 @@ targets_main <- function() {
     overview,
     for_report,
     differential_abundance,
+    fgsea,
     profiles
   )
 

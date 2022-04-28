@@ -38,4 +38,5 @@ CONTRASTS_COMPARE_DAYS <- c(
   "drug_29-placebo_29"
 )
 
+BATCH_EXAMPLES <- c(973, 4291)
 

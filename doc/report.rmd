@@ -170,23 +170,39 @@ stages. The first stage would include:
 
 Raw data were analysed with
 [Spectronaut](https://biognosys.com/software/spectronaut). I have
-received one CSV file at protein level (one row per protein/protein
-group) with raw and normalised abundances and some additional QC
-information.
+received two files: one is the original output from Spectronaut (a TSV
+file in long format), the other is a file processed by collaborators (a
+CSV file in wide format). I did initial analysis using the processed
+file (I got it first), but then switched to the original file.
 
+The file I used is a protein quantification file and it contains the
+following columns:
+
+```{r spectronaut_columns}
+tar_read(spectronaut_columns) %>% 
+  flextable()
+```
+
+We need file name (corresponding to the sample name), protein
+accessions, descriptions and quantity - raw protein intensity. All
+q-values are small (the largest q-value is
+`r signif(tar_read(max_qvalue), 2)`).
+
+### Normalisation
+
+Raw data are normalised to the median in each sample.
 
 ## Experiment
 
-We have a lot of samples. There are two treatments (drug and placebo),
-several time points and batches. Here is a summary of the sample
-numbers:
+We have `r tar_read(n_samples)` samples. There are two treatments (drug
+and placebo), several time points and batches. Here is a summary of the
+sample numbers:
 
-```{r fig_counts, fig.width=4, fig.height=5}
-tar_read(fig_counts)
+```{r fig_counts, fig.width=6, fig.height=4}
+tar_read(fig_counts) 
 ```
 
-
-More details in tabular form:
+We see that batch 1 and 2 are very small (we are going to ignore these data when taking batch effects into account) and days 4 and 15 have little data available. More details in tabular form:
 
 ```{r meta_day}
 tar_read(metadata) %>%
@@ -206,19 +222,46 @@ tar_read(metadata) %>%
   merge_v(j = 1)
 ```
 
+### Full table of the experimental design
+
+Please note that sample naming in this report (`sample`) differs from
+the file/sample naming in the Spectronaut file (`raw_sample`). New
+sample name consists of the following:
+
+-   treatment (`P` for placebo, `D` for drug)
+-   batch number (1-5)
+-   day (01, 04, 08, 15, 29)
+-   'replicate' number (1 .. n, within given treatment/batch/day)
+
+```{r meta}
+m <- tar_read(metadata) %>% 
+  select(sample, raw_sample, batch, participant_id, treatment, day, age, sex, completion)
+DT::datatable(m) %>%  formatStyle(columns = colnames(m), fontSize = '90%')
+```
 
 ## Overview
 
-
 ### Protein detection
 
-Not all proteins are detected across all `r tar_read(n_samples)`
-samples. Figure below shows in how many samples each protein was
-detected, starting from the highest number. There are
-`r N(tar_read(n_full_detection))` proteins detected across all samples.
+Not all proteins are detected across all `r tar_read(n_samples)` samples. Figures below show
+
+ - in how many samples each protein was detected, starting from the highest number
+ - how many proteins are detected in each sample, starting from the highest number
+ 
 
 ```{r detection, fig.width=10, fig.height=4}
 tar_read(fig_detection)
+```
+
+There is a dramatic drop at the end of the right panel, which is due to one sample  with very few proteins detected. This sample is removed from further analysis. Here is information about the bad sample:
+
+
+```{r bad_samples}
+m <- tar_read(metadata) %>% 
+  filter(bad) %>% 
+  select(sample, raw_sample, batch, participant_id, treatment, day, age, sex, completion)
+flextable(m) %>% 
+  width(j = 1:2, width = 1.3)
 ```
 
 ### Abundance distribution
@@ -231,11 +274,15 @@ knitr::include_graphics("../fig/kernels.png")
 
 ### Clustering
 
+OK, this is a monstrous figure, but allows to see all the samples clustered together. Colours of sample names represent batches. We can see that batch effects dominate this experiment. Hierarchical clustering was calculated based on logarithm of normalised intensities, with Euclidean distance, using complete linkage method.
+
 ```{r fig_clustering, fig.width=8, fig.height=40}
 tar_read(fig_clustering)
 ```
 
 ### Correlation matrix
+
+This figure shows Pearson's correlation coefficient for all pairs of samples. It is a bit messy. The bad sample is clearly visible as a dark row and column. The figure is based on logarithm of normalised intensities.
 
 ```{r cormat, fig.width=10, fig.height=10}
 tar_read(fig_cormat) 
@@ -243,11 +290,15 @@ tar_read(fig_cormat)
 
 ### PCA
 
+The figure is based on logarithm of normalised intensities. The bad replicate stands out.
+
 ```{r pca, fig.width=8, fig.height=8}
 tar_read(fig_pca)
 ```
 
 ### UMAP
+
+UMAP is dimensionality reduction method, an alternative to PCA. It retains structure of high-dimensional data when embedded in two dimensions.
 
 ```{r umap, fig.width=8, fig.height=8}
 tar_read(fig_umap) 
@@ -278,11 +329,100 @@ variances towards this global trend. Extreme variances (either large or
 small) become less extreme, which makes the test more robust to random
 outliers.
 
-### Results
+### Full model
 
-```{r fig_ma_full, fig.width=12, fig.height=4}
-tar_read(fig_ma_full)
+First, we analyse all data using a 'full' model taking into account all potential effects:
+
+`~ treatment + day + batch + age_group + sex`
+
+The differential abundance is calculated with respect to the baseline:
+
+ - treatment = placebo
+ - day = 1
+ - batch = 3
+ - age_group = <50
+ - sex = F
+ 
+In this model, and models below, bad replicate and data from batch 1 and 2 are ignored.
+
+The figure below shows MA plots for each of the coefficients. Each panel corresponds to one value of one coefficient, showing differential abundance with respect to the baseline.
+
+```{r fig_ma_full, fig.width=10, fig.height=10}
+tar_read(fig_ma_full) 
 ```
+
+Black points indicate proteins with significant -- false discovery rate (FDR) < 0.01 -- differential abundance. Note that with dozens of samples even small changes become statistically significant, so we need to pay attention to the effect size (log fold change).
+
+The biggest effect comes from batch differences and time points. The drug effect is week, though it shows a few differentially abundant (DA) proteins, these might be flukes. We are going to look at drug effect in details later. Similarly, other factors (age and sex) have very week effect on DA.
+
+
+### Batch effect
+
+Next, we look at the difference between batches 3, 4 and 5. For this, a simple model with only batch as effect was created and three contrasts calculated:
+
+```{r fig_da_batch, fig.width=8, fig.height=3}
+tar_read(fig_ma_batch)
+```
+
+Somehow batches 4 and 5 are the most different, but statistical significance can be misleading here due to a large number of samples and a complex design.
+
+A couple of examples to demonstrate the strength of batch effect:
+
+```{r fig_batch_examples, fig.width=8, fig.height=4}
+tar_read(fig_batch_examples) 
+```
+
+Trypsin is an extreme example where batches 4 and 5 differ by almost 3 orders of magnitude.
+
+### Day 1
+
+We select day 1 data only and consider a model
+
+`~ treatment + batch + age_group + sex`
+
+```{r fig_ma_day1, fig.width=8, fig.height=8}
+tar_read(fig_ma_day1) 
+```
+
+Not surprisingly there is no drug effect on day 1.
+
+
+### Day 29
+
+Now the same for day 29. Note that there is no batch 3 in day 29 data.
+
+```{r fig_ma_day29, fig.width=8, fig.height=5.5}
+tar_read(fig_ma_day29) 
+```
+
+Now a lot of proteins are 'significant' in drug effect, but the fold change is not any different from day 1. We need to be careful interpreting these results. Again, they are completely dominated by batch effects.
+
+## Participants
+
+Protein measurements at different time points are not independent, as they come from the same individuals. The plot below shows which participants gave samples at which days:
+
+```{r fig_participants, fig.width=10, fig.height=5}
+tar_read(fig_participants)
+```
+
+Black lines indicate participants delivering samples both on day 1 and 29. We can use these data to link day 1 and 29 data and make a paired model. For this, a log-ratio of intensity at day 29 to day 1 is calculated for each participant and each protein. If there is no change in protein abundance between days 1 and 29, the log-ratio should be close to 0. We perform a one-sample test for each protein with the null hypothesis of 0. We use `limma` to control variance between proteins.
+
+This should give us differential abundance in time (days 1 and 29), corrected for interdependence (participants).
+
+### Placebo results
+
+```{r fig_dd_placebo, fig.width=4, fig.height=3}
+tar_read(fig_volcano_dd_placebo)
+```
+
+### Drug results
+
+```{r fig_dd_drug, fig.width=4, fig.height=3}
+tar_read(fig_volcano_dd_drug)
+```
+
+
+
 
 ## Resources
 

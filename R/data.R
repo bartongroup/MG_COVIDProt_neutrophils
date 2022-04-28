@@ -287,3 +287,21 @@ logfc_days <- function(set, days = c(1, 29)) {
     id_prot_gene = set$id_prot_gene
   )
 }
+
+
+
+get_file_columns <- function(file) {
+  f <- read_tsv(file, n_max = 1)
+  tibble(
+    column = colnames(f)
+  )
+}
+
+
+add_genes <- function(res, info) {
+  g <- info %>% 
+    mutate(gene_name = str_remove(gene_names, ";.+$")) %>% 
+    select(id, gene_name)
+  res %>% 
+    left_join(g, by = "id")
+}

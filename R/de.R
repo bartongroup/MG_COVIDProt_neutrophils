@@ -1,3 +1,22 @@
+# Convert raw output from limma into a useful format
+tabulate_de <- function(fit) {
+  coefs <- colnames(fit$coefficients) %>% 
+    str_subset("Intercept", negate = TRUE)
+  map_dfr(coefs, function(ctr) {
+    limma::topTable(fit, coef = ctr, number = 1e6, sort.by = "none") %>%
+      as_tibble(rownames = "id") %>%
+      add_column(contrast = ctr)
+  }) %>% 
+    drop_na() %>% 
+    select(-c(t, B)) %>%
+    rename(FDR = adj.P.Val, PValue = P.Value) %>%
+    mutate(
+      id = as.integer(id),
+      logFC = logFC / log10(2),    # convert into log2
+      contrast = factor(contrast, levels = coefs)
+    )
+}
+
 # DE for selected contrasts; if not specified, all pairs of contrasts 
 limma_de <- function(set, contrasts = NULL, group_var = "treatment", what = "abu_norm", filt = "TRUE") {
   meta <- set$metadata %>% 
@@ -10,7 +29,7 @@ limma_de <- function(set, contrasts = NULL, group_var = "treatment", what = "abu
   design_mat <- model.matrix(~ 0 + group, data = meta)
   colnames(design_mat) <- groups
   
-  tab <- dat2mat(set$dat, what)[, meta$sample] / log10(2)
+  tab <- dat2mat(set$dat, what)[, meta$sample]
   
   if (is.null(contrasts)) {
     contrasts <- expand_grid(x = as_factor(groups), y = as_factor(groups)) %>%
@@ -25,46 +44,28 @@ limma_de <- function(set, contrasts = NULL, group_var = "treatment", what = "abu
     limma::contrasts.fit(contrasts = contrast_mat) %>%
     limma::eBayes()
   
-  map_dfr(contrasts, function(ctr) {
-    limma::topTable(fit, coef = ctr, number = 1e6, sort.by = "none") %>%
-      as_tibble(rownames = "id") %>%
-      mutate(across(c(id), as.integer)) %>% 
-      rename(FDR = adj.P.Val, PValue = P.Value) %>%
-      select(-c(t, B)) %>% 
-      add_column(contrast = ctr)
-  }) %>% 
-    drop_na() %>% 
-    mutate(contrast = factor(contrast, levels = contrasts))
+  tabulate_de(fit)
 }
+
+
 
 # DE with formula
 limma_de_f <- function(set, formula, what = "abu_norm", filt = "TRUE") {
-  tab <- dat2mat(set$dat, what) / log10(2)
   meta <- set$metadata %>% 
     filter(!bad & !!rlang::parse_expr(filt)) %>% 
     droplevels()
-  tab <- tab[, meta$sample]
   
+  tab <- dat2mat(set$dat, what)[, meta$sample]
   design_mat <- model.matrix(as.formula(formula), data = meta)
-  coefs <- colnames(design_mat)[-1]
-  
+
   fit <- tab %>%
     limma::lmFit(design_mat) %>%
     limma::eBayes()
   
-  res <- map_dfr(coefs, function(cf) {
-    limma::topTable(fit, coef = cf, number = 1e6, sort.by = "none") %>%
-      as_tibble(rownames = "id") %>%
-      mutate(id = as.integer(id)) %>% 
-      mutate(contrast = cf) %>%
-      rename(FDR = adj.P.Val, PValue = P.Value) %>%
-      select(-c(t, B))
-  }) %>% 
-    drop_na() %>% 
-    mutate(contrast = factor(contrast, levels = coefs))
-  
-  res
+  tabulate_de(fit)
 }
+
+
 
 # one-sample limma against zero
 limma_de_ratio <- function(df, what = "logFC", id_var = "participant_id", filt = "TRUE") {
