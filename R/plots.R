@@ -5,16 +5,14 @@ gs <- function(gg, name, width, height) {
          width = width, height = height, dpi = 300)
 }
 
-plot_volma <- function(res, p, fdr, group, fdr_limit, point_size, point_alpha) {
+plot_volma <- function(res, group, point_size, point_alpha) {
   r <- res %>%
     mutate(
-      p = get(p),
-      sig = get(fdr) < fdr_limit,
       group = get(group)
     ) %>% 
-    select(x, y, sig, group)
-  r_sig <- r %>% filter(sig)
-  r_nsig <- r %>% filter(!sig)
+    select(x, y, sel, group)
+  r_sel <- r %>% filter(sel)
+  r_nsel <- r %>% filter(!sel)
 
   rm(res, r)  # Minimise environment for serialisation
     
@@ -24,12 +22,12 @@ plot_volma <- function(res, p, fdr, group, fdr_limit, point_size, point_alpha) {
       panel.grid = element_blank(),
       legend.position = "none"
     ) +
-    geom_point(data = r_nsig, aes(x = x, y = y), colour = "grey70",
+    geom_point(data = r_nsel, aes(x = x, y = y), colour = "grey70",
                size = point_size, alpha = point_alpha) +
     facet_wrap( ~ group) 
   
-  if (nrow(r_sig) > 0) {
-    g <- g + geom_point(data = r_sig, aes(x = x, y = y), colour = "black",
+  if (nrow(r_sel) > 0) {
+    g <- g + geom_point(data = r_sel, aes(x = x, y = y), colour = "black",
                         size = point_size, alpha = point_alpha)
   }
   g
@@ -41,8 +39,9 @@ plot_ma <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR",
     mutate(
       x = get(a),
       y = get(fc),
+      sel = get(fdr) < fdr_limit
     ) %>% 
-    plot_volma(p, fdr, group, fdr_limit, point_size, point_alpha) +
+    plot_volma(group, point_size, point_alpha) +
     geom_hline(yintercept = 0, size = 0.1, alpha = 0.5) +
     labs(x = expression(log[10]~Intensity), y = expression(log[2]~FC))
 }
@@ -53,8 +52,9 @@ plot_volcano <- function(res, fc = "logFC", p = "PValue", fdr = "FDR", group = "
     mutate(
       x = get(fc),
       y = -log10(get(p)),
+      sel = get(fdr) < fdr_limit
     ) %>% 
-    plot_volma(p, fdr, group, fdr_limit, point_size, point_alpha) +
+    plot_volma(group, point_size, point_alpha) +
     geom_vline(xintercept = 0, size = 0.1, alpha = 0.5) +
     labs(x = expression(log[2]~FC), y = expression(-log[10]~P)) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.03)))
@@ -410,7 +410,8 @@ plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
 plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch") {
   info <- set$info %>% 
     filter(id %in% pids) %>% 
-    mutate(prot = glue::glue("{protein_accessions} {gene_names}: {protein_descriptions}"))
+    mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) %>% 
+    mutate(prot = glue::glue("{gene_names}: {protein_descriptions}"))
   d <- set$dat %>%
     mutate(val = get(what)) %>% 
     filter(id %in% pids) %>%
@@ -424,7 +425,6 @@ plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch") {
   dm <- d %>% 
     group_by(id, prot, xi) %>% 
     summarise(M = mean(val))
-  tit <- glue::glue("{info$protein_accessions} {info$gene_names} : {info$protein_descriptions}")
   rm(set)
   ggplot(d, aes(x = x, y = val, colour = colvar)) +
     theme_bw() +
@@ -436,7 +436,7 @@ plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch") {
     scale_colour_manual(values = okabe_ito_palette, name = colour_var) +
     ggbeeswarm::geom_quasirandom(width = 0.2, size = 1, alpha = 0.8) +
     geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
-    facet_wrap(~ prot) +
+    facet_wrap(~ prot, labeller = label_wrap_gen()) +
     labs(x = NULL, y = what)
 }
 

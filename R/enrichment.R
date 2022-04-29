@@ -151,43 +151,36 @@ select_star_go <- function(se, bm_go, terms) {
 }
 
 
-tissue_score <- function(ts, prof) {
-  good_levels <- c("Low", "Medium", "High")
-  m <- ts %>% 
-    full_join(prof, by = "gene_name") %>% 
-    filter(level.x %in% good_levels & level.y %in% good_levels) %>% 
-    drop_na()
-  fit <- lm(m ~ level.x, data = m)
-  ...
-}
 
-match_tissue <- function(set, tis) {
-  # Human Protein Atlas tissue genes
+plot_tissue <- function(set, tis) {
+  # Human Protein Atlas tissue data
+  # https://www.proteinatlas.org/about/download/normal_tissue.tsv.zip
   tis <- tis %>% 
     janitor::clean_names()
-  tg <- tis %>% select(gene_name) %>% distinct()
-  # quantile levels <25% = low, 25%-75% = medium, >75% - high
-  d <- set$dat %>% 
+  set$dat %>% 
     group_by(id) %>% 
-    summarise(m = mean(abu_norm))
-  q <- quantile(d$m, c(0.25, 0.75))
-  # Build protein profile for our data
-  prof <- d %>% 
-    mutate(level = case_when(
-      m <= q[1] ~ "Low",
-      m > q[1] & m <= q[2] ~ "Medium",
-      m > q[2] ~ "High")
-    ) %>% 
+    summarise(m = mean(abu_norm)) %>%
     add_genes(set$info) %>% 
-    right_join(tg, by = "gene_name") %>% 
-    mutate(level = replace_na(level, "Not detected"))
-  
-  tissues <- tis$tissue %>% unique()
-  map_dfr(tissues, function(ts) {
-    tibble(
-      tissue = ts,
-      match_score = tissue_score(tis %>% filter(tissue == ts), prof)
-    )
+    left_join(tis, by = "gene_name") %>% 
+    filter(level %in% c("Low", "Medium", "High")) %>% 
+  ggplot(aes(x = m, y = tissue)) +
+    theme_bw() +
+    geom_density_ridges() +
+    facet_wrap(~ level)
+}
+
+
+extract_term_genes <- function(all_terms, phrase) {
+  gr <- names(all_terms)
+  map(gr, function(g) {
+    terms <- all_terms[[g]]
+    terms$terms %>%
+      filter(str_detect(term_name, str_glue("(?i){phrase}"))) %>%
+      left_join(terms$gene2term, by = "term_id") %>%
+      drop_na() %>% 
+      filter(gene_name != "") %>% 
+      pull(gene_name) %>% 
+      unique()
   }) %>% 
-    arrange(desc(match_score))
+    set_names(gr)
 }

@@ -10,3 +10,5 @@ fig
 doc/report_cache
 doc/report_files
 doc/report.html
+shiny/*rds
+cache

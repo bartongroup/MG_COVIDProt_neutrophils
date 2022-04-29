@@ -42,6 +42,7 @@ targets_main <- function() {
     tar_target(da_batch, limma_de(set, contrasts = c("x5-x4", "x5-x3", "x4-x3"), group_var = "batch")),
     tar_target(da_day1, limma_de_f(set, "~ treatment + batch + age_group + sex", filt = paste(base_filter, "& day == 1"))),
     tar_target(da_day29, limma_de_f(set, "~ treatment + batch + age_group + sex", filt = paste(base_filter, "& day == 29"))),
+    tar_target(dal_day29, de_list(da_day29, "contrast", split_up_down = TRUE)),
     
     tar_target(fig_ma_full, plot_ma(da_full) + ylim(-10, 10)),
     tar_target(fig_ma_batch, plot_ma(da_batch) + ylim(-10, 10)),
@@ -79,6 +80,13 @@ targets_main <- function() {
     tar_target(n_full_detection, detection_samples(set)$n[1]),
     tar_target(n_samples, nrow(set$metadata))
   )
+  
+  save_shiny <- list(
+    tar_target(save_shiny_terms, write_rds(all_terms, "shiny/terms.rds", compress = "xz")),
+    tar_target(save_shiny_genes, write_rds(bm_genes, "shiny/genes.rds", compress = "xz")),
+    tar_target(save_shiny_da_day29, write_rds(da_day29 %>% add_genes(set$info), "shiny/da_day29.rds", compress = "xz")),
+    tar_target(save_shiny_data, write_rds(set, "shiny/data.rds", compress = "xz"))
+  )
 
   c(
     biomart,
@@ -88,6 +96,7 @@ targets_main <- function() {
     for_report,
     differential_abundance,
     fgsea,
+    save_shiny,
     profiles
   )
 
