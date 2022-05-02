@@ -501,7 +501,7 @@ tar_read(fig_dd_drug_vs_placebo)
 
 ## Resources
 
--   [Interactive data explorer]()
+-   [Interactive data explorer](https://shiny.compbio.dundee.ac.uk/private/marek_covid_prot/da_day29)
 -   [Download DE results]()
 
 ## Session info
