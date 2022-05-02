@@ -18,7 +18,8 @@ tabulate_de <- function(fit) {
 }
 
 # DE for selected contrasts; if not specified, all pairs of contrasts 
-limma_de <- function(set, contrasts = NULL, group_var = "treatment", what = "abu_norm", filt = "TRUE") {
+limma_de <- function(set, contrasts = NULL, group_var = "treatment", what = "abu_norm",
+                     filt = "TRUE", names = "sample") {
   meta <- set$metadata %>% 
     filter(!bad & !!rlang::parse_expr(filt)) %>% 
     mutate(group = get(group_var)) %>% 
@@ -29,7 +30,7 @@ limma_de <- function(set, contrasts = NULL, group_var = "treatment", what = "abu
   design_mat <- model.matrix(~ 0 + group, data = meta)
   colnames(design_mat) <- groups
   
-  tab <- dat2mat(set$dat, what)[, meta$sample]
+  tab <- dat2mat(set$dat, what, names)[, as.character(meta[[names]])]
   
   if (is.null(contrasts)) {
     contrasts <- expand_grid(x = as_factor(groups), y = as_factor(groups)) %>%
@@ -50,12 +51,12 @@ limma_de <- function(set, contrasts = NULL, group_var = "treatment", what = "abu
 
 
 # DE with formula
-limma_de_f <- function(set, formula, what = "abu_norm", filt = "TRUE") {
+limma_de_f <- function(set, formula, what = "abu_norm", filt = "TRUE", names = "sample") {
   meta <- set$metadata %>% 
     filter(!bad & !!rlang::parse_expr(filt)) %>% 
     droplevels()
   
-  tab <- dat2mat(set$dat, what)[, meta$sample]
+  tab <- dat2mat(set$dat, what, names)[, as.character(meta[[names]])]
   design_mat <- model.matrix(as.formula(formula), data = meta)
 
   fit <- tab %>%

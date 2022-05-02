@@ -256,7 +256,7 @@ get_full_participants <- function(meta, days = c(1, 29)) {
     set_names(c("participant_id", "first", "last", "first_batch", "last_batch"))
 }
 
-logfc_days <- function(set, days = c(1, 29)) {
+logfc_days <- function(set, days = c(1, 29), min_det = 3) {
   pd <- get_full_participants(set$metadata, days)
   X <- dat2mat(set$dat, what = "abu_norm")
   X <- X / log10(2)   # we are going to find log2_FC
@@ -279,6 +279,18 @@ logfc_days <- function(set, days = c(1, 29)) {
     left_join(select(pd, participant_id, first_batch, last_batch), by = "participant_id") %>% 
     unite(batches, c(first_batch, last_batch), sep = "-") %>% 
     add_column(bad = FALSE)
+  
+  # remove proteins with less than min_det detection per treatment
+  good_prots <- dat %>% 
+    left_join(meta, by = "participant_id") %>% 
+    group_by(id, treatment) %>% 
+    tally() %>% 
+    filter(n >= min_det) %>%
+    pull(id) %>% 
+    unique()
+  
+  dat <- dat %>% 
+    filter(id %in% good_prots)
   
   list(
     dat = dat,

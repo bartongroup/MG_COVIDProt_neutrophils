@@ -407,7 +407,7 @@ plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
 }
 
 
-plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch") {
+plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch", ncol = NULL) {
   info <- set$info %>% 
     filter(id %in% pids) %>% 
     mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) %>% 
@@ -436,20 +436,26 @@ plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch") {
     scale_colour_manual(values = okabe_ito_palette, name = colour_var) +
     ggbeeswarm::geom_quasirandom(width = 0.2, size = 1, alpha = 0.8) +
     geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
-    facet_wrap(~ prot, labeller = label_wrap_gen()) +
+    facet_wrap(~ prot, labeller = label_wrap_gen(), ncol = ncol) +
     labs(x = NULL, y = what)
 }
 
 
-plot_lograt_protein <- function(df, pid) {
+plot_lograt_protein <- function(df, pids, ncol = NULL) {
+  info <- df$info %>% 
+    filter(id %in% pids) %>% 
+    mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) %>% 
+    mutate(prot = glue::glue("{gene_names}: {protein_descriptions}"))
   d <- df$dat %>% 
-    filter(id == pid) %>% 
-    left_join(df$metadata, by = "participant_id")
-  info <- set$info %>% 
-    filter(id == pid)
-  tit <- glue::glue("{info$protein_accessions} {info$gene_names} : {info$protein_descriptions}")
+    filter(id %in% pids) %>% 
+    left_join(df$metadata, by = "participant_id") %>% 
+    left_join(info, by = "id") %>% 
+    mutate(x = as_factor(treatment), xi = as.integer(x))
+  dm <- d %>% 
+    group_by(id, prot, xi) %>% 
+    summarise(M = mean(logFC))
   rm(df)
-  ggplot(d, aes(x = treatment, y = logFC, colour = batches)) +
+  ggplot(d, aes(x = x, y = logFC, colour = batches)) +
     theme_bw() +
     theme(
       panel.grid = element_blank()
@@ -457,7 +463,9 @@ plot_lograt_protein <- function(df, pid) {
     geom_hline(yintercept = 0, colour = "grey50") +
     geom_beeswarm() +
     scale_colour_manual(values = okabe_ito_palette) +
-    labs(x = NULL, y = expression(log[2]~I[29]/I[1]), title = tit)
+    geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
+    facet_wrap(~ prot, ncol = ncol) +
+    labs(x = NULL, y = expression(log[2]~I[29]/I[1]))
 }
 
 

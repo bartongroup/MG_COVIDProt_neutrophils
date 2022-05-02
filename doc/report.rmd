@@ -39,6 +39,7 @@ options(
 library(targets)
 library(tidyverse)
 library(flextable)
+library(UpSetR)
 library(DT)
 ```
 
@@ -397,6 +398,45 @@ tar_read(fig_ma_day29)
 
 Now a lot of proteins are 'significant' in drug effect, but the fold change is not any different from day 1. We need to be careful interpreting these results. Again, they are completely dominated by batch effects.
 
+
+### Day 29 and batch effects
+
+There are two batches within day 29: batch 4 and batch 5. As demonstrated above, the batch effect is strong. Here, two data subsets are considered, for batch 4 and batch 5 separately (both for day 29). The model is 
+
+`~ treatment + age_group + sex`
+
+```{r fig_day29_4, fig.width=8, fig.height=5.5}
+tar_read(fig_ma_day29_b4) + ggtitle("Batch 4")
+```
+
+
+```{r fig_day29_5, fig.width=6, fig.height=5.5}
+tar_read(fig_ma_day29_b5) + ggtitle("Batch 5")
+```
+
+The next figure shows overlap for DA proteins (FDR < 0.01) for day 29: batch 4, batch 5 and both:
+
+```{r day29_upset}
+upset(fromList(tar_read(ups_day29))) 
+```
+
+The only proteins in agreement between three selections are:
+
+```{r day29_best}
+tar_read(dal_day29_treatment_best) %>% 
+  select(-protein_names) %>% 
+  flextable() %>% 
+  width(2, 2) %>% 
+  width(3, 3)
+```
+
+Here are abundances from these proteins:
+
+```{r fig_day29_best, fig.width=10, fig.height=4}
+tar_read(fig_day29_best)
+```
+
+
 ## Participants
 
 Protein measurements at different time points are not independent, as they come from the same individuals. The plot below shows which participants gave samples at which days:
@@ -409,18 +449,53 @@ Black lines indicate participants delivering samples both on day 1 and 29. We ca
 
 This should give us differential abundance in time (days 1 and 29), corrected for interdependence (participants).
 
+```{r dd_enrichment}
+tar_load(gse_dd)
+tb <- map_dfr(names(gse_dd), function(ont) {
+  gse_dd[[ont]] %>% 
+    filter(padj < 0.01) %>% 
+    add_column(ontology = ont, .before = 1) %>% 
+    mutate(across(c(pval, padj, NES), ~signif(.x, 3))) %>% 
+    select(ontology, term, term_name, padj, NES, size, contrast) %>% 
+    mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
+})
+```
+
+
 ### Placebo results
 
 ```{r fig_dd_placebo, fig.width=4, fig.height=3}
 tar_read(fig_volcano_dd_placebo)
+DT::datatable(tb %>% filter(contrast == "placebo") %>% select(-contrast))
 ```
 
 ### Drug results
 
 ```{r fig_dd_drug, fig.width=4, fig.height=3}
 tar_read(fig_volcano_dd_drug)
+DT::datatable(tb %>% filter(contrast == "drug") %>% select(-contrast))
 ```
 
+### Drug vs placebo
+
+We can compare a day 1-to-29 change between drug and placebo.
+
+```{r fig_volcano_dd_drug_vs_placebo, fig.width=8, fig.height=5.5}
+tar_read(fig_volcano_dd_drug_vs_placebo)
+```
+
+Here are the significant proteins:
+
+```{r dd_drug_vs_placebo}
+tar_load(dal_dd_drug_vs_placebo_proteins)
+DT::datatable(dal_dd_drug_vs_placebo_proteins %>% select(-protein_names)) 
+```
+
+
+
+```{r fig_dd_drug_vs_placebo, fig.width=10, fig.height=8}
+tar_read(fig_dd_drug_vs_placebo)
+```
 
 
 
