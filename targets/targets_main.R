@@ -31,8 +31,9 @@ targets_main <- function() {
     tar_target(fig_cormat, plot_distance_matrix(set)),
     tar_target(fig_pca, plot_pca(set, colour_var = "batch", shape_var = "day")),
     tar_target(fig_umap, plot_umap(set, n_neighbours = 20, min_dist = 0.1, colour_var = "batch", shape_var = "day")),
-    tar_target(fig_participants, plot_participants(set$metadata)),
-    tar_target(fig_counts, plot_meta_numbers(set$metadata))
+    tar_target(fig_participant_1_29, plot_participant_1_29(set$metadata)),
+    tar_target(fig_counts_batch, plot_meta_numbers(set$metadata, fill_var = "batch")),
+    tar_target(fig_counts_run, plot_meta_numbers(set$metadata, fill_var = "run_index"))
     #tar_target(png_big_heat, plot_big_heatmap(set) %>% gs("big_heatmap", 20, 49))
   )
   
@@ -62,7 +63,7 @@ targets_main <- function() {
     tar_target(dd_all, bind_rows(dd_drug %>% mutate(contrast = "drug"), dd_placebo %>% mutate(contrast = "placebo"))),
     tar_target(fig_volcano_dd, plot_volcano(dd_all)),
     
-    tar_target(dd_drug_vs_placebo, limma_de_f(lograt, formula = "~ treatment + age_group + sex", what = "logFC", names = "participant_id")),
+    tar_target(dd_drug_vs_placebo, limma_de_f(lograt, formula = "~ treatment + age_group + sex", what = "logFC", names = "participant_id", filt = "completion")),
     tar_target(dal_dd_drug_vs_placebo, de_list(dd_drug_vs_placebo, "contrast", split_up_down = FALSE, fdr_limit = FDR_LIMIT)),
     tar_target(fig_volcano_dd_drug_vs_placebo, plot_volcano(dd_drug_vs_placebo)),
 
@@ -96,11 +97,15 @@ targets_main <- function() {
     tar_target(n_hit_proteins, set$dat$id %>% unique() %>% length()),
     tar_target(n_full_detection, detection_samples(set)$n[1]),
     tar_target(n_samples, nrow(set$metadata)),
+    tar_target(participants, collect_participant_stats(set$metadata)),
+    tar_target(fig_participat_stats, plot_paricipant_stats(participants)),
     
     tar_target(dal_day29_treatment_best_ids, Reduce(intersect, ups_day29)),
     tar_target(dal_day29_treatment_best, set$info %>% filter(id %in% dal_day29_treatment_best_ids)),
     
-    tar_target(dal_dd_drug_vs_placebo_proteins, set$info %>% filter(id %in% dal_dd_drug_vs_placebo$treatmentdrug))
+    tar_target(dal_dd_drug_vs_placebo_proteins, set$info %>% filter(id %in% dal_dd_drug_vs_placebo$treatmentdrug)),
+    
+    tar_target(sav_csv, save_data_csv(set, "tab/full_data.csv"))
   )
   
   save_shiny <- list(

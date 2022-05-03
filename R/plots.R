@@ -1,4 +1,4 @@
-okabe_ito_palette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+okabe_ito_palette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "grey80", "grey30", "black")
 
 gs <- function(gg, name, width, height) {
   ggsave(filename = file.path("fig", paste0(name, ".png")), plot = gg, device = "png",
@@ -407,7 +407,8 @@ plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
 }
 
 
-plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch", ncol = NULL) {
+plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch", shape_var = "sex",
+                         ncol = NULL, point_size = 1.5, filt = "completion") {
   info <- set$info %>% 
     filter(id %in% pids) %>% 
     mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) %>% 
@@ -416,17 +417,18 @@ plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch", nco
     mutate(val = get(what)) %>% 
     filter(id %in% pids) %>%
     left_join(set$metadata, by = "sample") %>% 
-    rename(colvar = !!colour_var) %>% 
+    filter(!bad & !!rlang::parse_expr(filt)) %>% 
+    rename(colvar = !!colour_var, shapevar = !!shape_var) %>% 
     arrange(treatment, day) %>% 
     unite(x, c(treatment, day)) %>% 
     mutate(x = as_factor(x), xi = as.integer(x)) %>% 
     left_join(info, by = "id") %>% 
-    select(id, prot, x, xi, val, colvar)
+    select(id, prot, x, xi, val, colvar, shapevar)
   dm <- d %>% 
     group_by(id, prot, xi) %>% 
     summarise(M = mean(val))
   rm(set)
-  ggplot(d, aes(x = x, y = val, colour = colvar)) +
+  ggplot(d, aes(x = x, y = val)) +
     theme_bw() +
     theme(
       axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
@@ -434,7 +436,8 @@ plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch", nco
       panel.grid.minor.y = element_blank()
     ) +
     scale_colour_manual(values = okabe_ito_palette, name = colour_var) +
-    ggbeeswarm::geom_quasirandom(width = 0.2, size = 1, alpha = 0.8) +
+    scale_shape_discrete(name = shape_var) +
+    ggbeeswarm::geom_quasirandom(aes(colour = colvar, shape = shapevar), width = 0.2, size = point_size, alpha = 0.8) +
     geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
     facet_wrap(~ prot, labeller = label_wrap_gen(), ncol = ncol) +
     labs(x = NULL, y = what)
@@ -464,7 +467,7 @@ plot_lograt_protein <- function(df, pids, ncol = NULL) {
     geom_beeswarm() +
     scale_colour_manual(values = okabe_ito_palette) +
     geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
-    facet_wrap(~ prot, ncol = ncol) +
+    facet_wrap(~ prot, labeller = label_wrap_gen(), ncol = ncol) +
     labs(x = NULL, y = expression(log[2]~I[29]/I[1]))
 }
 
@@ -492,31 +495,32 @@ plot_protein_coverage <- function(qc) {
     labs(x = "Proteins", y = "Coverage")
 }
 
-plot_participants <- function(meta) {
+plot_participant_1_29 <- function(meta) {
   pp <- get_full_participants(meta)
   meta %>%
     left_join(pp, by = "participant_id") %>% 
-    mutate(good = !is.na(first)) %>% 
-  ggplot(aes(x = participant_id, y = day, group = participant_id, colour = good)) +
+    mutate(`both 1 and 29` = !is.na(first)) %>% 
+  ggplot(aes(x = participant_id, y = day, group = participant_id, colour = `both 1 and 29`, shape = completion)) +
     theme_bw() +
     theme(
       panel.grid = element_blank(),
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
-      legend.position = "none"
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
+      #legend.position = "none"
     ) +
-    geom_point() +
     geom_line() +
+    geom_point() +
     scale_colour_manual(values = c("grey", "black")) +
+    scale_shape_manual(values = c(4, 16)) +
     facet_wrap(~ treatment, ncol = 1, scales = "free_x") +
     labs(x = "Participant ID", y = "Day")
 }
 
-
-plot_meta_numbers <- function(meta) {
+plot_meta_numbers <- function(meta, fill_var = "batch") {
   meta %>% 
-    group_by(treatment, day, batch) %>% 
+    mutate(fillvar = get(fill_var)) %>% 
+    group_by(treatment, day, fillvar) %>% 
     tally() %>% 
-  ggplot(aes(x = day, y = n, fill = batch)) +
+  ggplot(aes(x = day, y = n, fill = fillvar)) +
     theme_bw() +
     theme(
       panel.grid = element_blank()
@@ -525,7 +529,42 @@ plot_meta_numbers <- function(meta) {
     scale_fill_manual(values = okabe_ito_palette) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
     facet_wrap(~treatment, nrow = 1) +
-    labs(x = "Day", y = "Count", fill = "Batch")
+    labs(x = "Day", y = "Count", fill = fill_var)
+}
+
+plot_paricipant_stats <- function(part) {
+  th <- theme_bw() +
+    theme(panel.grid = element_blank())
+  p_d <- function(x, name) {
+    tibble(x = x) %>% 
+      group_by(x) %>% 
+      tally() %>% 
+      ggplot(aes(x = x, y = n)) +
+      th +
+      geom_col() +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.03))) +
+      labs(x = name, y = NULL)
+  }
+  p_c <- function(x, name) {
+    tibble(x = x) %>% 
+      group_by(x) %>% 
+      tally() %>% 
+      ggplot(aes(x = x, xend = x, y = n, yend = 0)) +
+      th +
+      geom_segment(colour = "grey60") +
+      geom_point() +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.03))) +
+      labs(x = name, y = NULL)
+  }
+  
+  plot_grid(
+    p_c(part$age, "Age"),
+    p_c(part$time_from_symptoms, "Time from symtoms (days)"),
+    p_c(part$days_of_treatment, "Days of treatment"),
+    p_d(part$sex, "Sex"),
+    p_d(part$treatment, "Treatment"),
+    p_d(part$completion, "Completion")
+  )
 }
 
 plot_fc_fc <- function(df1, df2, info, labx = "x", laby = "y", logfc_limit = 0.01, dif_limit = 1) {
@@ -541,5 +580,18 @@ plot_fc_fc <- function(df1, df2, info, labx = "x", laby = "y", logfc_limit = 0.0
     geom_abline(slope = 1, intercept = 0, colour = "red") +
     geom_text_repel(data = d %>% filter(dif > dif_limit), aes(label = gene_names)) +
     labs(x = labx, y = laby)
+}
+
+
+make_upset_batch_run <- function(meta) {
+  batch_list <- meta %>% 
+    group_split(batch) %>% 
+    map(\(x) pull(x, sample)) %>% 
+    set_names(str_c("batch_", levels(meta$batch)))
+  run_list <- meta %>% 
+    group_split(run_index) %>% 
+    map(\(x) pull(x, sample)) %>% 
+    set_names(str_c("run_", levels(meta$run_index)))
+  c(batch_list, run_list)
 }
 

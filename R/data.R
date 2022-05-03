@@ -19,7 +19,7 @@ read_spectronaut_long_data <- function(data_file, info_file, uni_gene, bad_sampl
       "time_from_symptoms",
       "treatment",
       "completion",
-      "day_of_treatment",
+      "days_of_treatment",
       "on_drug"
     )) %>% 
     mutate(raw_sample = str_remove(raw_file_name, ".raw")) %>% 
@@ -29,7 +29,7 @@ read_spectronaut_long_data <- function(data_file, info_file, uni_gene, bad_sampl
       completion = as.logical(completion),
       sex = toupper(sex),
       on_drug = str_remove(on_drug, "\\s\\(discontinued\\)"),
-      delay = if_else(time_from_symptoms > 10, "large", "small"),
+      delay = if_else(time_from_symptoms > 20, "large", "small"),
       age_group = case_when(
         age < 50 ~ "<50",
         age >= 50 & age < 65 ~ "50-65",
@@ -67,10 +67,11 @@ read_spectronaut_long_data <- function(data_file, info_file, uni_gene, bad_sampl
     ) %>% 
     mutate(sample = glue::glue("{s1}{s2}_{s3}-{s4}") %>% as.character()) %>% 
     select(-c(s1, s2, s3, s4, trep)) %>% 
-    mutate(across(c(batch, participant_id, day, sex, treatment), as.factor)) %>% 
+    mutate(across(c(batch, run_index, participant_id, day, sex, treatment), as_factor)) %>% 
     mutate(
       treatment = fct_relevel(treatment, "placebo"),
-      sex = fct_relevel(sex, "F"),
+      sex = fct_relevel(sex, "M"),
+      run_index = fct_relevel(run_index, "278"),
       bad = sample %in% bad_samples
     )
   
@@ -317,3 +318,42 @@ add_genes <- function(res, info) {
   res %>% 
     left_join(g, by = "id")
 }
+
+
+save_data_csv <- function(set, file) {
+  set$dat %>%
+    mutate(
+      sample = factor(sample, levels = set$metadata$sample),
+      abu_norm = signif(abu_norm, 5)
+    ) %>% 
+    arrange(sample, id) %>% 
+    pivot_wider(id_cols = id, names_from = sample, values_from = abu_norm) %>%
+    left_join(set$info %>% select(id, gene_names, protein_accessions, protein_descriptions), by = "id") %>% 
+    relocate(c(gene_names, protein_accessions, protein_descriptions), .after = "id") %>% 
+    write_csv(file)
+}
+
+collect_participant_stats <- function(meta) {
+  # used to collapse day and on_drug into string
+  days <- levels(meta$day) %>% as.integer()
+  dots <- rep(".", length(days)) %>% 
+    set_names(days)
+  
+  dd_ <- function(day, on_drug) {
+    d <- dots
+    d[day] <- on_drug
+    str_c(d, collapse = "")
+  }
+  
+  dd <- meta %>% 
+    select(participant_id, day, on_drug) %>% 
+    mutate(on_drug = recode(on_drug, "yes" = "Y", "no" = "N", "baseline" = "B")) %>%
+    group_by(participant_id) %>% 
+    summarise(on_drug = dd_(day, on_drug))
+  
+  meta %>% 
+    select(participant_id, age, sex, time_from_symptoms, treatment, completion, days_of_treatment) %>% 
+    distinct() %>% 
+    left_join(dd, by = "participant_id")
+}
+

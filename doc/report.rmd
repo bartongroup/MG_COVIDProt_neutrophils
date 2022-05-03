@@ -195,15 +195,19 @@ Raw data are normalised to the median in each sample.
 
 ## Experiment
 
+### Batches
+
 We have `r tar_read(n_samples)` samples. There are two treatments (drug
 and placebo), several time points and batches. Here is a summary of the
 sample numbers:
 
 ```{r fig_counts, fig.width=6, fig.height=4}
-tar_read(fig_counts) 
+tar_read(fig_counts_batch) 
 ```
 
 We see that batch 1 and 2 are very small (we are going to ignore these data when taking batch effects into account) and days 4 and 15 have little data available. More details in tabular form:
+
+#### Treatment and day
 
 ```{r meta_day}
 tar_read(metadata) %>%
@@ -214,6 +218,8 @@ tar_read(metadata) %>%
   merge_v(j = 1)
 ```
 
+#### Batch and day
+
 ```{r meta_batch}
 tar_read(metadata) %>%
   group_by(batch, day) %>% 
@@ -222,6 +228,23 @@ tar_read(metadata) %>%
   theme_box() %>% 
   merge_v(j = 1)
 ```
+
+### MS runs
+
+```{r fig_counts_run, fig.width=6, fig.height=4}
+tar_read(fig_counts_run) 
+```
+
+```{r meta_batch_run}
+tar_read(metadata) %>%
+  group_by(batch, run_index) %>% 
+  tally() %>% 
+  flextable() %>% 
+  theme_box() %>% 
+  merge_v(j = 1)
+```
+
+
 
 ### Full table of the experimental design
 
@@ -236,8 +259,20 @@ sample name consists of the following:
 
 ```{r meta}
 m <- tar_read(metadata) %>% 
-  select(sample, raw_sample, batch, participant_id, treatment, day, age, sex, completion)
-DT::datatable(m) %>%  formatStyle(columns = colnames(m), fontSize = '90%')
+  select(sample, raw_sample, batch, run_index, participant_id, treatment, day, age, sex, completion)
+DT::datatable(m) %>%  formatStyle(columns = colnames(m), fontSize = '80%')
+```
+
+## Participants
+
+Overview of participants:
+
+```{r participants}
+DT::datatable(tar_read(participants)) 
+```
+
+```{r fig_participant_stats, fig.width=7, fig.height=8}
+tar_read(fig_participat_stats)
 ```
 
 ## Overview
@@ -375,6 +410,23 @@ tar_read(fig_batch_examples)
 
 Trypsin is an extreme example where batches 4 and 5 differ by almost 3 orders of magnitude.
 
+#### Gene set enrichment for batch effect
+
+```{r gse_batch5}
+tar_load(gse_batch5)
+map_dfr(names(gse_batch5), function(ont) {
+  gse_batch5[[ont]] %>% 
+    filter(padj < 0.01) %>% 
+    add_column(ontology = ont, .before = 1) %>% 
+    mutate(across(c(pval, padj, NES), ~signif(.x, 3))) %>% 
+    select(ontology, term, term_name, padj, NES, size, contrast) %>% 
+    mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
+}) %>% 
+  DT::datatable()
+```
+
+
+
 ### Day 1
 
 We select day 1 data only and consider a model
@@ -437,12 +489,13 @@ tar_read(fig_day29_best)
 ```
 
 
-## Participants
+## Per participant DA
+
 
 Protein measurements at different time points are not independent, as they come from the same individuals. The plot below shows which participants gave samples at which days:
 
 ```{r fig_participants, fig.width=10, fig.height=5}
-tar_read(fig_participants)
+tar_read(fig_participant_1_29)
 ```
 
 Black lines indicate participants delivering samples both on day 1 and 29. We can use these data to link day 1 and 29 data and make a paired model. For this, a log-ratio of intensity at day 29 to day 1 is calculated for each participant and each protein. If there is no change in protein abundance between days 1 and 29, the log-ratio should be close to 0. We perform a one-sample test for each protein with the null hypothesis of 0. We use `limma` to control variance between proteins.
@@ -464,12 +517,16 @@ tb <- map_dfr(names(gse_dd), function(ont) {
 
 ### Placebo results
 
+Volcano plot and gene set enrichment analysis for the placebo.
+
 ```{r fig_dd_placebo, fig.width=4, fig.height=3}
 tar_read(fig_volcano_dd_placebo)
 DT::datatable(tb %>% filter(contrast == "placebo") %>% select(-contrast))
 ```
 
 ### Drug results
+
+Volcano plot and gene set enrichment analysis for the drug
 
 ```{r fig_dd_drug, fig.width=4, fig.height=3}
 tar_read(fig_volcano_dd_drug)
@@ -494,7 +551,7 @@ DT::datatable(dal_dd_drug_vs_placebo_proteins %>% select(-protein_names))
 
 
 ```{r fig_dd_drug_vs_placebo, fig.width=10, fig.height=8}
-tar_read(fig_dd_drug_vs_placebo)
+tar_read(fig_dd_drug_vs_placebo) 
 ```
 
 
