@@ -444,7 +444,7 @@ plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch", sha
 }
 
 
-plot_lograt_protein <- function(df, pids, ncol = NULL) {
+plot_lograt_protein <- function(df, pids, ncol = NULL, colour_var = "age_group", shape_var = "sex", filt = "completion") {
   info <- df$info %>% 
     filter(id %in% pids) %>% 
     mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) %>% 
@@ -452,19 +452,21 @@ plot_lograt_protein <- function(df, pids, ncol = NULL) {
   d <- df$dat %>% 
     filter(id %in% pids) %>% 
     left_join(df$metadata, by = "participant_id") %>% 
+    filter(!bad & !!rlang::parse_expr(filt)) %>% 
+    rename(colvar = !!colour_var, shapevar = !!shape_var) %>% 
     left_join(info, by = "id") %>% 
     mutate(x = as_factor(treatment), xi = as.integer(x))
   dm <- d %>% 
     group_by(id, prot, xi) %>% 
     summarise(M = mean(logFC))
   rm(df)
-  ggplot(d, aes(x = x, y = logFC, colour = batches)) +
+  ggplot(d, aes(x = x, y = logFC)) +
     theme_bw() +
     theme(
       panel.grid = element_blank()
     ) +
     geom_hline(yintercept = 0, colour = "grey50") +
-    geom_beeswarm() +
+    geom_beeswarm(aes(colour = colvar, shape = shapevar)) +
     scale_colour_manual(values = okabe_ito_palette) +
     geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
     facet_wrap(~ prot, labeller = label_wrap_gen(), ncol = ncol) +
