@@ -367,13 +367,29 @@ plot_unique_pep <- function(set, min_pep) {
 
 plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
                              id_sel = NULL, sample_sel = NULL, order_col = TRUE,
-                             text.size = 8) {
+                             text.size = 8, get_mean = FALSE, with_y_text = FALSE) {
   d <- set$dat %>% 
     mutate(val = get(what))
+  meta <- set$metadata
+  
   if (!is.null(sample_sel))
     d <- d %>% filter(sample %in% sample_sel)
   if (!is.null(id_sel))
     d <- d %>% filter(id %in% id_sel)
+  
+  if (get_mean) {
+    d <- d %>% 
+      left_join(set$metadata, by = "sample") %>% 
+      group_by(id, treatment, day) %>% 
+      summarise(val = mean(val)) %>% 
+      unite(sample, c(treatment, day))
+    meta <- meta %>% 
+      select(-sample) %>% 
+      unite(sample, c(treatment, day), remove = FALSE) %>% 
+      select(sample, treatment, day) %>% 
+      distinct() %>% 
+      add_column(bad = FALSE)
+  }
   
   d <- d %>% 
     group_by(id) %>% 
@@ -384,31 +400,28 @@ plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
     filter(n > min_n)
   tab <- dat2mat(d, "fc")
   
-  smeta <- set$metadata %>% 
+  smeta <- meta %>% 
     filter(sample %in% colnames(tab) & !bad) %>% 
-    arrange(day, treatment, batch)  
+    arrange(treatment, day)  
   smpls <- smeta %>% pull(sample)
-  
+
   tab <- tab[, smpls]
   
-  if (is.null(order_col)) {
-    divs <- smeta %>%
-      group_by(day) %>% 
-      tally() %>% 
-      mutate(div = cumsum(n) + 0.5)
-  } else {
-    divs <- NULL
-  }
-  
-  
-  ggheatmap(tab, order.col = order_col, with.x.text = TRUE, with.y.text = FALSE,
+  genes <- tibble(id = rownames(tab) %>% as.integer()) %>% 
+    left_join(set$info, by = "id") %>% 
+    unite(gid, c(id, gene_names), sep = "-") %>% 
+    pull(gid)
+  rownames(tab) <- genes
+
+  ggheatmap(tab, order.col = order_col, with.x.text = TRUE, with.y.text = with_y_text,
             dendro.line.size = 0.2, text.size = text.size,
-            max.fc = max_fc, legend.name = "logFC", divs = divs)
+            max.fc = max_fc, legend.name = "logFC")
 }
 
 
 plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch", shape_var = "sex",
-                         ncol = NULL, point_size = 1.5, filt = "completion") {
+                         ncol = NULL, point_size = 1.5, filt = "completion",
+                         sample_sel = NULL) {
   info <- set$info %>% 
     filter(id %in% pids) %>% 
     mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) %>% 
@@ -423,10 +436,13 @@ plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch", sha
     unite(x, c(treatment, day)) %>% 
     mutate(x = as_factor(x), xi = as.integer(x)) %>% 
     left_join(info, by = "id") %>% 
-    select(id, prot, x, xi, val, colvar, shapevar)
+    select(id, sample, prot, x, xi, val, colvar, shapevar)
+  if (!is.null(sample_sel))
+    d <- d %>% filter(sample %in% sample_sel)
   dm <- d %>% 
     group_by(id, prot, xi) %>% 
-    summarise(M = mean(val))
+    summarise(M = mean(val), n = n()) %>% 
+    filter(n > 1)
   rm(set)
   ggplot(d, aes(x = x, y = val)) +
     theme_bw() +
@@ -435,9 +451,10 @@ plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch", sha
       panel.grid.major.y = element_blank(),
       panel.grid.minor.y = element_blank()
     ) +
+    scale_x_discrete(drop = FALSE) +
     scale_colour_manual(values = okabe_ito_palette, name = colour_var) +
     scale_shape_discrete(name = shape_var) +
-    ggbeeswarm::geom_quasirandom(aes(colour = colvar, shape = shapevar), width = 0.2, size = point_size, alpha = 0.8) +
+    ggbeeswarm::geom_quasirandom(aes(colour = colvar, shape = shapevar), width = 0.2, size = point_size, alpha = 0.8, groupOnX = TRUE) +
     geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
     facet_wrap(~ prot, labeller = label_wrap_gen(), ncol = ncol) +
     labs(x = NULL, y = what)
@@ -466,11 +483,11 @@ plot_lograt_protein <- function(df, pids, ncol = NULL, colour_var = "age_group",
       panel.grid = element_blank()
     ) +
     geom_hline(yintercept = 0, colour = "grey50") +
-    geom_beeswarm(aes(colour = colvar, shape = shapevar)) +
+    ggbeeswarm::geom_quasirandom(aes(colour = colvar, shape = shapevar), width = 0.2) +
     scale_colour_manual(values = okabe_ito_palette) +
     geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
     facet_wrap(~ prot, labeller = label_wrap_gen(), ncol = ncol) +
-    labs(x = NULL, y = expression(log[2]~I[29]/I[1]))
+    labs(x = NULL, y = expression(log[2]~I[29]/I[1]), shape = shape_var, colour = colour_var)
 }
 
 
@@ -565,7 +582,9 @@ plot_paricipant_stats <- function(part) {
     p_c(part$days_of_treatment, "Days of treatment"),
     p_d(part$sex, "Sex"),
     p_d(part$treatment, "Treatment"),
-    p_d(part$completion, "Completion")
+    p_d(part$completion, "Completion"),
+    nrow = 1,
+    rel_widths = c(1, 1, 1, 0.5, 0.5, 0.5)
   )
 }
 
@@ -597,3 +616,43 @@ make_upset_batch_run <- function(meta) {
   c(batch_list, run_list)
 }
 
+plot_volcano_enrichment <- function(res, info, onts, terms, all_terms) {
+  res <- res %>% 
+    filter(contrast == "treatmentdrug")
+  term_genes <- map2_dfr(onts, terms, function(ont, term) {
+    all_terms[[ont]]$gene2term %>% 
+      filter(term_id == term) %>% 
+      select(gene_name) %>% 
+      add_column(ont, term_id = term) %>% 
+      distinct()
+  })
+  sel_genes <- info %>% 
+    select(id, gene_name = gene_names) %>% 
+    separate_rows(gene_name, sep = ";") %>%
+    right_join(term_genes, by = "gene_name") %>% 
+    group_by(id, ont, term_id) %>% 
+    summarise(gene_name = str_c(gene_name, collapse = ";")) 
+  d <- map2_dfr(onts, terms, function(ont, term) {
+    ids <- sel_genes %>% 
+      filter(term_id == term) %>% 
+      pull(id) %>% 
+      unique()
+    res %>% 
+      add_column(ont = ont, term_id = term) %>% 
+      mutate(sel = id %in% ids) %>% 
+      left_join(sel_genes, by = c("id", "ont", "term_id"))
+  }) %>% 
+    mutate(x = logFC, y = -log10(PValue))
+  d_sel <- d %>% 
+    filter(sel)
+
+  ggplot() +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_point(data = d, aes(x = x, y = y), colour = "grey80") +
+    geom_point(data = d_sel, aes(x = x, y = y), colour = "black") +
+    geom_text_repel(data = d_sel, aes(x = x, y = y, label = gene_name)) +
+    facet_wrap(~ term_id) +
+    labs(x = expression(log[2]~FC), y = expression(-log[10]~P)) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.03)))
+}

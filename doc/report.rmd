@@ -235,6 +235,8 @@ tar_read(metadata) %>%
 tar_read(fig_counts_run) 
 ```
 
+MS runs are subsets of batches:
+
 ```{r meta_batch_run}
 tar_read(metadata) %>%
   group_by(batch, run_index) %>% 
@@ -265,14 +267,16 @@ DT::datatable(m) %>%  formatStyle(columns = colnames(m), fontSize = '80%')
 
 ## Participants
 
-Overview of participants:
+### Table of participants
 
 ```{r participants}
 DT::datatable(tar_read(participants)) 
 ```
 
-```{r fig_participant_stats, fig.width=7, fig.height=8}
-tar_read(fig_participat_stats)
+### Distribution of attributes
+
+```{r fig_participant_stats, fig.width=11, fig.height=3.5}
+tar_read(fig_participat_stats) 
 ```
 
 ## Overview
@@ -402,10 +406,10 @@ tar_read(fig_ma_batch)
 
 Somehow batches 4 and 5 are the most different, but statistical significance can be misleading here due to a large number of samples and a complex design.
 
-A couple of examples to demonstrate the strength of batch effect:
+A couple of examples to demonstrate the strength of batch effect. MS run indeces are also included.
 
-```{r fig_batch_examples, fig.width=8, fig.height=4}
-tar_read(fig_batch_examples) 
+```{r fig_batch_examples, fig.width=9, fig.height=5}
+tar_read(fig_batch_examples)
 ```
 
 Trypsin is an extreme example where batches 4 and 5 differ by almost 3 orders of magnitude.
@@ -488,6 +492,24 @@ Here are abundances from these proteins:
 tar_read(fig_day29_best)
 ```
 
+### The outlier
+
+There is one persistent outlier keeping high levels of AZU1 and CTSG on day 29. It is the same participant, ID 1132, one of the youngest in the cohort:
+
+```{r part1132}
+tar_read(metadata) %>% 
+  filter(participant_id == 1132) %>% 
+  select(participant_id, age, sex, time_from_symptoms, completion) %>% 
+  distinct() %>% 
+  flextable()
+```
+
+These are the same five proteins for this participant 1132:
+
+```{r fig_day29_best_1132, fig.width=10, fig.height=4}
+tar_read(fig_day29_best_part1132)
+```
+
 
 ## Per participant DA
 
@@ -551,7 +573,7 @@ DT::datatable(dal_dd_drug_vs_placebo_proteins %>% select(-protein_names))
 
 
 ```{r fig_dd_drug_vs_placebo, fig.width=10, fig.height=8}
-tar_read(fig_dd_drug_vs_placebo) 
+tar_read(fig_dd_drug_vs_placebo)
 ```
 
 

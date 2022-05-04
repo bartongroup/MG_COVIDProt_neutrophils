@@ -34,42 +34,41 @@ targets_main <- function() {
     tar_target(fig_participant_1_29, plot_participant_1_29(set$metadata)),
     tar_target(fig_counts_batch, plot_meta_numbers(set$metadata, fill_var = "batch")),
     tar_target(fig_counts_run, plot_meta_numbers(set$metadata, fill_var = "run_index"))
-    #tar_target(png_big_heat, plot_big_heatmap(set) %>% gs("big_heatmap", 20, 49))
   )
   
   differential_abundance <- list(
-    tar_target(base_filter, "completion & batch %in% c(3, 4, 5)"),
-    tar_target(da_full, limma_de_f(set, "~ treatment + day + batch + age_group + sex", filt = base_filter)),
-    tar_target(da_batch, limma_de(set, contrasts = c("x5-x4", "x5-x3", "x4-x3"), group_var = "batch")),
-    tar_target(da_day1, limma_de_f(set, "~ treatment + batch + age_group + sex", filt = paste(base_filter, "& day == 1"))),
-    tar_target(da_day29, limma_de_f(set, "~ treatment + batch + age_group + sex", filt = paste(base_filter, "& day == 29"))),
-    tar_target(da_day29_b4, limma_de_f(set, "~ treatment + age_group + sex", filt = paste(base_filter, "& batch == 4 & day == 29"))),
-    tar_target(da_day29_b5, limma_de_f(set, "~ treatment + age_group + sex", filt = paste(base_filter, "& batch == 5 & day == 29"))),
+    tar_target(da_full, limma_de_f(set, "~ treatment + day + batch + age_group + sex", filt = BASE_FILTER)),
+    tar_target(da_batch, limma_de(set, contrasts = c("x5-x4", "x5-x3", "x4-x3"), group_var = "batch", filt = BASE_FILTER)),
+    tar_target(da_day1, limma_de_f(set, "~ treatment + batch + age_group + sex", filt = paste(BASE_FILTER, "& day == 1"))),
+    tar_target(da_day29, limma_de_f(set, "~ treatment + batch + age_group + sex", filt = paste(BASE_FILTER, "& day == 29"))),
+    tar_target(da_day29_b4, limma_de_f(set, "~ treatment + age_group + sex", filt = paste(BASE_FILTER, "& batch == 4 & day == 29"))),
+    tar_target(da_day29_b5, limma_de_f(set, "~ treatment + age_group + sex", filt = paste(BASE_FILTER, "& batch == 5 & day == 29"))),
     
     tar_target(dal_day29, de_list(da_day29, "contrast", split_up_down = FALSE, fdr_limit = FDR_LIMIT)),
     tar_target(dal_day29_b4, de_list(da_day29_b4, "contrast", split_up_down = FALSE, fdr_limit = FDR_LIMIT)),
     tar_target(dal_day29_b5, de_list(da_day29_b5, "contrast", split_up_down = FALSE, fdr_limit = FDR_LIMIT)),
     
-    tar_target(fig_ma_full, plot_ma(da_full) + ylim(-10, 10)),
-    tar_target(fig_ma_batch, plot_ma(da_batch) + ylim(-10, 10)),
-    tar_target(fig_ma_day1, plot_ma(da_day1) + ylim(-10, 10)),
-    tar_target(fig_ma_day29, plot_ma(da_day29) + ylim(-10, 10)),
-    tar_target(fig_ma_day29_b4, plot_ma(da_day29_b4) + ylim(-10, 10)),
-    tar_target(fig_ma_day29_b5, plot_ma(da_day29_b5) + ylim(-10, 10)),
+    tar_target(fig_ma_full, plot_ma(da_full, fdr_limit = FDR_LIMIT) + ylim(-10, 10)),
+    tar_target(fig_ma_batch, plot_ma(da_batch, fdr_limit = FDR_LIMIT) + ylim(-10, 10)),
+    tar_target(fig_ma_day1, plot_ma(da_day1, fdr_limit = FDR_LIMIT) + ylim(-10, 10)),
+    tar_target(fig_ma_day29, plot_ma(da_day29, fdr_limit = FDR_LIMIT) + ylim(-10, 10)),
+    tar_target(fig_ma_day29_b4, plot_ma(da_day29_b4, fdr_limit = FDR_LIMIT) + ylim(-10, 10)),
+    tar_target(fig_ma_day29_b5, plot_ma(da_day29_b5, fdr_limit = FDR_LIMIT) + ylim(-10, 10)),
     
     tar_target(lograt, logfc_days(set)),
     tar_target(dd_drug, limma_de_ratio(lograt, filt = "treatment == 'drug'")),
     tar_target(dd_placebo, limma_de_ratio(lograt, filt = "treatment == 'placebo'")),
     tar_target(dd_all, bind_rows(dd_drug %>% mutate(contrast = "drug"), dd_placebo %>% mutate(contrast = "placebo"))),
-    tar_target(fig_volcano_dd, plot_volcano(dd_all)),
+    tar_target(fig_volcano_dd, plot_volcano(dd_all, fdr_limit = FDR_LIMIT)),
     
     tar_target(dd_drug_vs_placebo, limma_de_f(lograt, formula = "~ treatment + age_group + sex", what = "logFC", names = "participant_id", filt = "completion")),
     tar_target(dal_dd_drug_vs_placebo, de_list(dd_drug_vs_placebo, "contrast", split_up_down = FALSE, fdr_limit = FDR_LIMIT)),
-    tar_target(fig_volcano_dd_drug_vs_placebo, plot_volcano(dd_drug_vs_placebo)),
+    tar_target(fig_volcano_dd_drug_vs_placebo, plot_volcano(dd_drug_vs_placebo, fdr_limit = FDR_LIMIT)),
 
-    tar_target(fig_batch_examples, plot_protein(set, pids = BATCH_EXAMPLES)),
+    tar_target(fig_batch_examples, plot_protein(set, pids = BATCH_EXAMPLES, colour_var = "run_index", shape_var = "batch")),
     tar_target(fig_day29_best, plot_protein(set, pids = dal_day29_treatment_best_ids, ncol = 5)),
-    tar_target(fig_dd_drug_vs_placebo, plot_lograt_protein(lograt, pids = dal_dd_drug_vs_placebo$treatmentdrug, ncol = 4))
+    tar_target(fig_day29_best_part1132, plot_protein(set, pids = dal_day29_treatment_best_ids, ncol = 5, sample_sel = c("D5_01-35", "D5_29-18"))),
+    tar_target(fig_dd_drug_vs_placebo, plot_lograt_protein(lograt, pids = dal_dd_drug_vs_placebo$treatmentdrug, ncol = 5))
   )
   
   upsets <- list(

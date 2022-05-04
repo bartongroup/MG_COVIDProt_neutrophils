@@ -31,13 +31,8 @@ make_metadata_ <- function(s_file) {
 }
 
 
-CONTRASTS_COMPARE_DAYS <- c(
-  "drug_1-placebo_1",
-  "drug_8-placebo_8",
-  "drug_15-placebo_15",
-  "drug_29-placebo_29"
-)
-
 BATCH_EXAMPLES <- c(973, 4291)
+BASE_FILTER <- "completion & batch %in% c(3, 4, 5)"
+
 
 
