@@ -616,43 +616,62 @@ make_upset_batch_run <- function(meta) {
   c(batch_list, run_list)
 }
 
-plot_volcano_enrichment <- function(res, info, onts, terms, all_terms) {
-  res <- res %>% 
-    filter(contrast == "treatmentdrug")
-  term_genes <- map2_dfr(onts, terms, function(ont, term) {
-    all_terms[[ont]]$gene2term %>% 
-      filter(term_id == term) %>% 
-      select(gene_name) %>% 
-      add_column(ont, term_id = term) %>% 
-      distinct()
-  })
-  sel_genes <- info %>% 
-    select(id, gene_name = gene_names) %>% 
-    separate_rows(gene_name, sep = ";") %>%
-    right_join(term_genes, by = "gene_name") %>% 
-    group_by(id, ont, term_id) %>% 
-    summarise(gene_name = str_c(gene_name, collapse = ";")) 
-  d <- map2_dfr(onts, terms, function(ont, term) {
-    ids <- sel_genes %>% 
-      filter(term_id == term) %>% 
-      pull(id) %>% 
-      unique()
-    res %>% 
-      add_column(ont = ont, term_id = term) %>% 
-      mutate(sel = id %in% ids) %>% 
-      left_join(sel_genes, by = c("id", "ont", "term_id"))
+
+# enrich_list = tibble with contrast, ontology and term_id
+plot_volcano_enrichment <- function(enrich_list, res, all_terms, ncol = NULL) {
+  d <- map_dfr(1:nrow(enrich_list), function(i) {
+    r <- enrich_list[i, ]
+    res_ctr <- res %>%
+      filter(contrast == r$contrast)
+    term_genes <- all_terms[[r$ontology]]$gene2term %>% 
+      filter(term_id == r$term_id) %>% 
+      pull(gene_name)
+    res_ctr %>% 
+      mutate(sel = gene_name %in% term_genes) %>% 
+      add_column(ontology = r$ontology, term_id = r$term_id) %>% 
+      left_join(all_terms[[r$ontology]]$terms, by = "term_id") %>% 
+      mutate(group = str_glue("{contrast} | {term_id} - {term_name}"))
   }) %>% 
     mutate(x = logFC, y = -log10(PValue))
+
   d_sel <- d %>% 
     filter(sel)
+  d_lab <- d_sel %>% 
+    filter(abs(logFC) > 1.5 | FDR < 0.05)
 
   ggplot() +
     theme_bw() +
-    theme(panel.grid = element_blank()) +
+    theme(
+      panel.grid = element_blank(),
+      strip.text = element_text(size = 12)
+    ) +
+    geom_vline(xintercept = 0, colour = "brown") +
     geom_point(data = d, aes(x = x, y = y), colour = "grey80") +
     geom_point(data = d_sel, aes(x = x, y = y), colour = "black") +
-    geom_text_repel(data = d_sel, aes(x = x, y = y, label = gene_name)) +
-    facet_wrap(~ term_id) +
-    labs(x = expression(log[2]~FC), y = expression(-log[10]~P)) +
+    ggrepel::geom_text_repel(data = d_lab, aes(x = x, y = y, label = gene_name), max.overlaps = 30) +
+    facet_wrap(~ group, labeller = label_wrap_gen(), ncol = ncol) +
+    labs(x = "log2 FC", y = expression(-log[10]~P)) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.03)))
+}
+
+
+
+
+plot_batch_dependence <- function(meta, coef = "age_group", filt = "TRUE") {
+  meta %>%
+    filter(!bad & !!rlang::parse_expr(filt)) %>% 
+    droplevels() %>% 
+    mutate(
+      cf = get(coef),
+      batch = str_glue("batch{batch}")
+    ) %>% 
+    group_by(batch, cf) %>% 
+    tally() %>% 
+  ggplot(aes(x = cf, y = n)) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_col() +
+    facet_wrap(~ batch, ncol = 1) +
+    scale_y_continuous(expand = expansion(mult = c(0, 0.03))) +
+    labs(x = coef, y = "Count")
 }

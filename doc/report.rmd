@@ -536,22 +536,24 @@ tb <- map_dfr(names(gse_dd), function(ont) {
 })
 ```
 
+### Volcano plots
 
-### Placebo results
+```{r fig_volcano_dl, fig.width=7, fig.height=3}
+tar_read(fig_volcano_dl)
+```
 
-Volcano plot and gene set enrichment analysis for the placebo.
+
+### Placebo set enrichment
+
 
 ```{r fig_dd_placebo, fig.width=4, fig.height=3}
-tar_read(fig_volcano_dd_placebo)
 DT::datatable(tb %>% filter(contrast == "placebo") %>% select(-contrast))
 ```
 
-### Drug results
+### Drug set_enrichment
 
-Volcano plot and gene set enrichment analysis for the drug
 
 ```{r fig_dd_drug, fig.width=4, fig.height=3}
-tar_read(fig_volcano_dd_drug)
 DT::datatable(tb %>% filter(contrast == "drug") %>% select(-contrast))
 ```
 
@@ -560,23 +562,42 @@ DT::datatable(tb %>% filter(contrast == "drug") %>% select(-contrast))
 We can compare a day 1-to-29 change between drug and placebo.
 
 ```{r fig_volcano_dd_drug_vs_placebo, fig.width=8, fig.height=5.5}
-tar_read(fig_volcano_dd_drug_vs_placebo)
+tar_read(fig_volcano_dl_drug_vs_placebo)
 ```
 
 Here are the significant proteins:
 
 ```{r dd_drug_vs_placebo}
-tar_load(dal_dd_drug_vs_placebo_proteins)
-DT::datatable(dal_dd_drug_vs_placebo_proteins %>% select(-protein_names)) 
+tar_load(dal_dl_drug_vs_placebo_proteins)
+DT::datatable(dal_dl_drug_vs_placebo_proteins %>% select(-protein_names)) 
 ```
 
 
 
 ```{r fig_dd_drug_vs_placebo, fig.width=10, fig.height=8}
-tar_read(fig_dd_drug_vs_placebo)
+tar_read(fig_dl_drug_vs_placebo) 
 ```
 
 
+## Gene set enrichment
+
+Gene set enrichment takes genes/proteins ordered by log-fold-change (ignoring p-values and significance) and looks for functional terms that are skewed towards small or large logFC. For example, GO-term "oxygen carrier activity" in the figure below is assigned to several proteins (haemoglobin and histone related) that all are down-regulated in age group over 80. None of these proteins is significant in simple differential abundance, but as a functional group they become significant, as they all are down-regulated.
+
+Here we use fold changes from day 29 selection, for treatment and age contrasts (batch excluded). The baseline is treatment = placebo and age_group = '<50'. Contrast names are at the top of each panel. For example `age_group>80` means comparison between `>80` and the baseline `<50`.
+
+The figure below shows volcano plots for various contrasts and functional terms, with term-annotated proteins highlighted.
+
+```{r, out.width="100%"}
+knitr::include_graphics("../fig/gse_examples.png") 
+```
+
+Below is the full result of gene-set-enrichment procedure (excluding batch effects). The FDR level was set to 0.05. NES stands for normalised effect size and tells you how far the group of proteins annotated with this term is skewed in logFC. Small and large NES means proteins are predominantly down- or up-regulated, respectively.
+
+```{r gse_results}
+tar_read(gse_da_day29_sig) %>% 
+  mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG")) %>% 
+  DT::datatable()
+```
 
 ## Resources
 

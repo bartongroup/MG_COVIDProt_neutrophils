@@ -34,5 +34,16 @@ make_metadata_ <- function(s_file) {
 BATCH_EXAMPLES <- c(973, 4291)
 BASE_FILTER <- "completion & batch %in% c(3, 4, 5)"
 
+ENRICHMENT_EXAMPLES <- tibble::tribble(
+  ~contrast, ~ontology, ~term_id,
+  "treatmentdrug", "go", "GO:0008236",
+  "treatmentdrug", "go", "GO:0035578",
+  "treatmentdrug", "kg", "hsa04613",
+  "treatmentdrug", "re", "R-HSA-6798695",
+  "age_group>80", "go", "GO:0072562",
+  "age_group>80", "go", "GO:0031720",
+  "age_group50-65", "re", "R-HSA-1247673"
+)
+
 
 

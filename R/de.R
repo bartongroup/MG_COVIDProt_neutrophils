@@ -45,7 +45,8 @@ limma_de <- function(set, contrasts = NULL, group_var = "treatment", what = "abu
     limma::contrasts.fit(contrasts = contrast_mat) %>%
     limma::eBayes()
   
-  tabulate_de(fit)
+  tabulate_de(fit) %>% 
+    add_genes(set$info)
 }
 
 
@@ -63,7 +64,8 @@ limma_de_f <- function(set, formula, what = "abu_norm", filt = "TRUE", names = "
     limma::lmFit(design_mat) %>%
     limma::eBayes()
   
-  tabulate_de(fit)
+  tabulate_de(fit) %>% 
+    add_genes(set$info)
 }
 
 
@@ -88,7 +90,8 @@ limma_de_ratio <- function(df, what = "logFC", id_var = "participant_id", filt =
       rename(FDR = adj.P.Val, PValue = P.Value) %>%
       select(-c(t, B)) %>% 
       add_column(contrast = "ratio") %>% 
-      drop_na()
+      drop_na() %>% 
+      add_genes(df$info)
   
   res
 }
@@ -133,9 +136,8 @@ make_de_genes <- function(de, fdr_limit = 0.05, logfc_limit = 1) {
 
 make_de_table <- function(de, info) {
   de %>%
-    #filter(FDR < fdr_limit & abs(logFC) >= logfc_limit) %>%
-    select(id, multi, logFC, PValue, FDR) %>%
+    select(id, logFC, PValue, FDR) %>%
     left_join(info, by = "id") %>%
-    select(id, multi, logFC, FDR, proteins, protein_names, gene_name, aa = amino_acid, in_pep = position_in_peptide, in_prot = position, charge) %>%
+    select(id, logFC, FDR, protein_accessions, gene_name) %>%
     mutate(across(c(logFC, FDR), ~signif(.x, 3)))
 }

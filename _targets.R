@@ -31,6 +31,9 @@ sesinfo <- list(
 # Targets
 c(
   sesinfo,
-  targets_main()
+  targets_data(),
+  targets_differential_abundance(),
+  targets_profiles(),
+  targets_report()
 )
 

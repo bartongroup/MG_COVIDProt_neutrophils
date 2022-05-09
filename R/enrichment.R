@@ -184,3 +184,17 @@ extract_term_genes <- function(all_terms, phrase) {
   }) %>% 
     set_names(gr)
 }
+
+
+get_significant_fgsea <- function(gse, fdr_limit = 0.05) {
+  map_dfr(names(gse), function(ont) {
+    gse[[ont]] %>% 
+      filter(padj < fdr_limit) %>% 
+      add_column(ontology = ont, .before = 1) %>% 
+      mutate(across(c(pval, padj, NES), ~signif(.x, 3))) %>% 
+      select(ontology, term_id = term, term_name, padj, NES, size, contrast)
+      #mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
+  }) %>% 
+    arrange(NES)
+    
+}
