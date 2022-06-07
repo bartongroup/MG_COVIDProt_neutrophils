@@ -591,7 +591,7 @@ The figure below shows volcano plots for various contrasts and functional terms,
 knitr::include_graphics("../fig/gse_examples.png") 
 ```
 
-Below is the full result of gene-set-enrichment procedure (excluding batch effects). The FDR level was set to 0.05. NES stands for normalised effect size and tells you how far the group of proteins annotated with this term is skewed in logFC. Small and large NES means proteins are predominantly down- or up-regulated, respectively.
+Below is the full result of gene-set-enrichment procedure (excluding batch effects). The FDR level was set to 0.05. NES stands for normalised effect size and tells you how far the group of proteins annotated with this term is skewed in logFC. Small and large NES means proteins are predominantly down- or up-regulated, respectively. The last column contains up to 10 top most changing genes (in the same direction as NES).
 
 ```{r gse_results}
 tar_read(gse_da_day29_sig) %>% 

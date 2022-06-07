@@ -29,7 +29,7 @@ targets_differential_abundance <- function() {
     tar_target(gse_dd, fgsea_all_terms(add_genes(dd_all, set$info), all_terms, prefix = "dd")),
     tar_target(gse_batch5, fgsea_all_terms(add_genes(da_full %>% filter(contrast == "batch5"), set$info), all_terms, prefix = "batch5")),
     
-    tar_target(gse_da_day29_sig, get_significant_fgsea(gse_da_day29, fdr_limit = 0.05) %>% filter(!str_detect(contrast, "batch"))),
+    tar_target(gse_da_day29_sig, get_significant_fgsea(gse_da_day29, da_day29, fdr_limit = 0.05) %>% filter(!str_detect(contrast, "batch"))),
     tar_target(png_gse_examples, plot_volcano_enrichment(gse_da_day29_sig, da_day29, all_terms, ncol = 3) %>% gs("gse_examples", 12, 25))
   )
   

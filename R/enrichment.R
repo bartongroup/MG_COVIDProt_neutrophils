@@ -186,13 +186,19 @@ extract_term_genes <- function(all_terms, phrase) {
 }
 
 
-get_significant_fgsea <- function(gse, fdr_limit = 0.05) {
+get_significant_fgsea <- function(gse, da, fdr_limit = 0.05, n_top = 10) {
   map_dfr(names(gse), function(ont) {
     gse[[ont]] %>% 
       filter(padj < fdr_limit) %>% 
+      unnest(leading_edge) %>% 
+      left_join(da, by = c("contrast", "leading_edge" = "gene_name")) %>% 
+      group_by(term, term_name, pval, padj, NES, size, contrast) %>% 
+      arrange(-sign(NES) * logFC) %>%  
+      summarise(top_genes = leading_edge %>% head(n_top = 10) %>% str_c(collapse = ", ")) %>%
+      ungroup() %>% 
       add_column(ontology = ont, .before = 1) %>% 
       mutate(across(c(pval, padj, NES), ~signif(.x, 3))) %>% 
-      select(ontology, term_id = term, term_name, padj, NES, size, contrast)
+      select(ontology, term_id = term, term_name, padj, NES, size, contrast, top_genes)
       #mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
   }) %>% 
     arrange(NES)
