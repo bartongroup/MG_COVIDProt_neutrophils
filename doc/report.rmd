@@ -1,5 +1,5 @@
 ---
-title: "COVID proteomics"
+title: "COVID proteomics: neutrophils"
 author: "Marek Gierlinski"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -601,7 +601,7 @@ tar_read(gse_da_day29_sig) %>%
 
 ## Resources
 
--   [Interactive data explorer](https://shiny.compbio.dundee.ac.uk/private/marek_covid_prot/da_day29)
+-   [Interactive data explorer](https://shiny.compbio.dundee.ac.uk/private/marek_covid_prot_neutrophils/da_day29)
 -   [Download DE results]()
 
 ## Session info
