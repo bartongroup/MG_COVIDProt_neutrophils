@@ -381,7 +381,7 @@ The differential abundance is calculated with respect to the baseline:
  - day = 1
  - batch = 3
  - age_group = <50
- - sex = F
+ - sex = M
  
 In this model, and models below, bad replicate and data from batch 1 and 2 are ignored.
 
