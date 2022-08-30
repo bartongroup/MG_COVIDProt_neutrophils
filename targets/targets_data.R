@@ -24,7 +24,7 @@ targets_data <- function() {
   save_shiny <- list(
     tar_target(save_shiny_terms, write_rds(all_terms, "shiny/terms.rds", compress = "xz")),
     tar_target(save_shiny_genes, write_rds(bm_genes, "shiny/genes.rds", compress = "xz")),
-    tar_target(save_shiny_da_day29, write_rds(da_day29 %>% add_genes(set$info), "shiny/da_day29.rds", compress = "xz")),
+    tar_target(save_shiny_da_day29, write_rds(da_day29, "shiny/da_day29.rds", compress = "xz")),
     tar_target(save_shiny_data, write_rds(set, "shiny/data.rds", compress = "xz"))
   )
   
