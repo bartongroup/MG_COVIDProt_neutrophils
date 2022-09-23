@@ -310,6 +310,15 @@ get_file_columns <- function(file) {
   )
 }
 
+get_file_nrow <- function(file) {
+  read_tsv(file) |> 
+    nrow()
+}
+
+get_file_head <- function(file, n = 10) {
+  read_tsv(file, n_max = n)
+}
+
 
 add_genes <- function(res, info) {
   g <- info %>% 

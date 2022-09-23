@@ -12,3 +12,6 @@ doc/report_files
 doc/report.html
 shiny/*rds
 cache
+talk/group_talk_cache
+talk/group_talk_files
+talk/group_talk.html

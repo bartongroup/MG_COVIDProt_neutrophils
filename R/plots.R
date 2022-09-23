@@ -211,7 +211,37 @@ plot_clustering <- function(set, text_size = 10, what = "abu_norm", dist.method 
     labs(x = NULL, y = "Distance")
 }
 
+plot_clustering_circular <- function(set, what = "abu_norm", dist.method = "euclidean",
+                                     clust.method = "complete", colour_var = "batch") {
+  dat <- set$dat |> 
+    left_join(set$metadata, by = "sample") |> 
+    filter(!bad)
+  
+  tab <- dat2mat(dat, what)
+  gd <- which(rowSums(is.na(tab)) == 0)
+  tab <- tab[gd, ]
+  
+  ph <- t(tab) %>% 
+    dist(method = dist.method) %>% 
+    hclust(method = clust.method) |> 
+    ape::as.phylo() |> 
+    ape::unroot()
+  
+  m <- set$metadata |>
+    filter(sample %in% ph$tip.label) |> 
+    mutate(batch = str_glue("B{batch}"))
+  groups <- split(m$sample, m$batch)
+  
+  phg <- groupOTU(ph, groups)
+  
+  ggtree(phg, aes(colour = group), layout = "circular", branch.length = "none") +
+    geom_tippoint() +
+    scale_colour_manual(values = c("black", okabe_ito_palette)) +
+    labs(colour = "Batch")
+}
+  
 
+  
 plot_distance_matrix <- function(set, what = "abu_norm", text_size = 10) {
   tab <- dat2mat(set$dat, what)
   
@@ -519,7 +549,7 @@ plot_participant_1_29 <- function(meta) {
   meta %>%
     left_join(pp, by = "participant_id") %>% 
     mutate(`both 1 and 29` = !is.na(first)) %>% 
-  ggplot(aes(x = participant_id, y = day, group = participant_id, colour = `both 1 and 29`, shape = completion)) +
+  ggplot(aes(x = participant_id, y = day, group = participant_id, fill = batch, colour = `both 1 and 29`, shape = completion)) +
     theme_bw() +
     theme(
       panel.grid = element_blank(),
@@ -527,9 +557,10 @@ plot_participant_1_29 <- function(meta) {
       #legend.position = "none"
     ) +
     geom_line() +
-    geom_point() +
+    geom_point(size = 3, shape = 21) +
     scale_colour_manual(values = c("grey", "black")) +
     scale_shape_manual(values = c(4, 16)) +
+    scale_fill_manual(values = okabe_ito_palette) +
     facet_wrap(~ treatment, ncol = 1, scales = "free_x") +
     labs(x = "Participant ID", y = "Day")
 }
@@ -549,6 +580,20 @@ plot_meta_numbers <- function(meta, fill_var = "batch") {
     scale_y_continuous(expand = expansion(mult = c(0, 0.05))) +
     facet_wrap(~treatment, nrow = 1) +
     labs(x = "Day", y = "Count", fill = fill_var)
+}
+
+plot_batch_heatmap <- function(meta) {
+  meta |>
+    ggplot(aes(y = as.factor(day), x = participant_id, fill = batch)) +
+    theme_bw() +
+    theme(
+      panel.grid = element_blank(),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 0)
+    ) +
+    geom_tile() +
+    scale_fill_manual(values = okabe_ito_palette) +
+    facet_wrap(~treatment, scales = "free", ncol = 1) +
+    labs(y = "Day", x = "Participant ID")
 }
 
 plot_paricipant_stats <- function(part) {

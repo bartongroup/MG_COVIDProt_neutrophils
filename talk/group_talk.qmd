@@ -1,0 +1,311 @@
+---
+title: "COVID neutrophiles study"
+subtitle: "or the pains of patient-based data"
+cache: true
+fig-align: center
+format:
+  revealjs:
+    theme: white
+    footer: Data Analysis Group
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(targets)
+library(gt)
+library(ape)
+library(UpSetR)
+```
+
+## Neutrophils
+
+::: {layout="[[50, 50]]"}
+![](images/neutrophil.png)
+
+-   type of white blood cell
+-   part of innate immune system
+-   first line of defence against pathogens
+:::
+
+## Motivation
+
+-   COVID casues acute respiratory distress syndrome (ARDS)
+-   Mortality in ADSR correlates with neutrophil count
+-   Neutrophil elastase is believed to cause neutrophil-induced lung damage
+-   It is activated by dipeptidyl peptidase 1 (cathepsin C)
+-   Brensocatib is a orally delivered DPP1 inhibitor
+-   The drug might help with COVID recovery
+
+::: notes
+Neutrophil elastase is a protease secreted by neutrophils during inflammation, destroys bacteria and host tissue.
+:::
+
+## Study
+
+-   Brensocatib vs placebo trial of hospital COVID patients
+-   145 participants enrolled
+-   Neutrophils from blood samples were isolated
+-   Let's do proteomics!
+
+## The file {.smaller}
+
+-   Spectronaut output, `r targets::tar_read(spectronaut_nrow) |> prettyNum(big.mark = ",")` rows
+
+```{r head}
+options(width = 100)
+tar_read(spectronaut_head) |>
+  select(R.FileName, PG.ProteinAccessions, PG.ProteinDescriptions, PG.Qvalue, PG.Quantity) |> 
+  print(n = 100) 
+```
+
+## Design
+
+-   5 time points
+-   5 batches
+-   Gaps in data
+-   Participants don't return for sampling on day 29
+-   Participants die
+
+## Gaps in data
+
+```{r fig_batch_heat}
+#| fig-align: center
+#| fig-width: 12
+#| fig-height: 7
+tar_read(fig_participant_1_29)
+```
+
+## Batch effects!
+
+::: {layout="[[-1], [-1, 2, -1], [-1]]"}
+```{r fig_batch_count}
+#| fig-width: 6
+tar_read(fig_counts_batch) 
+```
+:::
+
+## Participants
+
+::: {style="height: 80%; overflow-y: scroll;"}
+```{r participants}
+tar_read(participants) |> 
+  mutate(No = row_number(), .before = 1) |> 
+  gt() |> 
+  tab_style(
+    style = cell_text(font = "monospace"),
+    locations = cells_body(columns = on_drug)
+  )
+```
+:::
+
+## Participants
+
+```{r fig_participant_stats}
+#| fig-width: 11
+#| fig-height: 3.5
+tar_read(fig_participat_stats) 
+```
+
+## Protein detection
+
+```{r detection}
+tar_read(fig_detection)
+```
+
+## Clustering
+
+```{r fig_clustering}
+#| fig-height: 9
+#| fig-align: center
+tar_read(fig_clustering_circular) 
+```
+
+## PCA and UMAP
+
+::: {layout="[[1, 1]]"}
+```{r pca}
+#| fig-width: 7
+tar_read(fig_pca)
+```
+
+```{r umap}
+#| fig-width: 7
+tar_read(fig_umap)
+```
+:::
+
+## Differential abundance {.smaller}
+
+Full model
+
+`~ treatment + day + batch + age_group + sex`
+
+Baseline
+
+-   treatment = placebo
+-   day = 1
+-   batch = 3
+-   age_group = \<50
+-   sex = M
+
+## Differential abundance full
+
+```{r fig_ma_full}
+#| fig-width: 8
+#| fig-asp: 0.9
+#| fig-align: center
+tar_read(fig_ma_full) 
+```
+
+## Batch effect examples
+
+```{r fig_batch_examples}
+tar_read(fig_batch_examples)
+```
+
+## Gene set enrichment for batch effect
+
+::: {layout="[[-1],[1],[-1]]"}
+```{r gse_batch5}
+tar_load(gse_batch5)
+map_dfr(names(gse_batch5), function(ont) {
+  gse_batch5[[ont]] %>% 
+    filter(padj < 0.01) %>% 
+    add_column(ontology = ont, .before = 1) %>% 
+    mutate(across(c(pval, padj, NES), ~signif(.x, 3))) %>% 
+    select(ontology, term, term_name, padj, NES, size, contrast) %>% 
+    mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
+}) %>% 
+  gt()
+```
+:::
+
+## Day 29 {.smaller}
+
+Batch 4 and 5 only
+
+`~ treatment + age_group + sex`
+
+::: {layout="[[1.4, 1]]"}
+```{r fig_day29_4}
+#| fig-width: 7
+tar_read(fig_ma_day29_b4) + ggtitle("Batch 4")
+```
+
+```{r fig_day29_5}
+#| fig-width: 5
+tar_read(fig_ma_day29_b5) + ggtitle("Batch 5")
+```
+:::
+
+## Day 29 overlap
+
+::: {layout="[[-1], [-1, 5, -1], [-1]]"}
+```{r day29_upset}
+#| fig-width: 6
+#| fig-height: 4
+upset(fromList(tar_read(ups_day29))) 
+```
+:::
+
+## Day 29 best guess {.smaller}
+
+```{r day29_best}
+tar_read(dal_day29_treatment_best) %>% 
+  select(-protein_names) %>% 
+  gt()
+```
+
+```{r fig_day29_best}
+#| fig-align: center
+tar_read(fig_day29_best)
+```
+
+## Per participant DA
+
+```{r fig_participants}
+tar_read(fig_participant_1_29)
+```
+
+-   Find log-ratio of intensities at 29 and 1 days
+-   Differential abundance
+
+## log-ratio day 29 to day1
+
+::: {layout="[[-1], [-1, 5, -1], [-1]]"}
+```{r fig_volcano_dl}
+tar_read(fig_volcano_dl)
+```
+:::
+
+```{r dd_enrichment}
+tar_load(gse_dd)
+tb <- map_dfr(names(gse_dd), function(ont) {
+  gse_dd[[ont]] %>% 
+    filter(padj < 0.01) %>% 
+    add_column(ontology = ont, .before = 1) %>% 
+    mutate(
+      padj = signif(padj, 2),
+      NES = signif(NES, 3)
+    ) |> 
+    select(ontology, term, term_name, padj, NES, size, contrast) %>% 
+    mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
+})
+```
+
+## Gene-set enrichment drug
+
+::: {style="height: 80%; overflow-y: scroll;"}
+```{r lograt_drug}
+tb %>%
+  filter(contrast == "drug") %>%
+  select(-contrast) |> 
+  gt() |> 
+  fmt_scientific(padj, decimals = 1)
+```
+:::
+
+## Gene-set enrichment placebo
+
+::: {style="height: 80%; overflow-y: scroll;"}
+```{r lograt_placebo}
+tb %>%
+  filter(contrast == "placebo") %>%
+  select(-contrast) |> 
+  gt() |> 
+  fmt_scientific(padj, decimals = 1)
+```
+:::
+
+
+## Drug vs placebo
+
+```{r fig_volcano_dd_drug_vs_placebo}
+#| fig-width: 5
+#| fig-align: center
+tar_read(fig_volcano_dl_drug_vs_placebo)
+```
+
+## Drug vs placebo
+
+```{r fig_dd_drug_vs_placebo, fig.width=10, fig.height=8}
+#| fig-align: center
+tar_read(fig_dl_drug_vs_placebo) 
+```
+
+## Conclusions?
+
+::: {.incremental}
+
+ - This is not the end of the story
+ - Humans are more different than mice
+ - Strong batch effects
+ - Lots of replicates - meh
+ - Messy!
+
+:::
+
+
+## This is what we do
+
+![](images/needle.png)
