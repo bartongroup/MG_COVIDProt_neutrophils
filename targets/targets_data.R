@@ -16,8 +16,8 @@ targets_data <- function() {
   
   selections <- list(
     tar_target(detected_proteins, select_detected_proteins(set)),
-    tar_target(genes, detected_proteins$gene_name %>% unique()),
-    tar_target(all_genes, set$id_prot_gene$gene_name %>% unique()),
+    tar_target(genes, detected_proteins$gene_name |> unique()),
+    tar_target(all_genes, set$id_prot_gene$gene_name |> unique()),
     tar_target(participants, collect_participant_stats(set$metadata))
   )
   

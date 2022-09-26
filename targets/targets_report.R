@@ -6,8 +6,8 @@ targets_report <- function() {
     tar_target(prot_umap, make_prot_umap(set, n_neighbours = 30, min_dist = 0.1)),
     tar_target(fig_detection, plot_detection(set)),
     tar_target(fig_sample_detection, plot_sample_detection(set)),
-    tar_target(png_sample_dist, plot_sample_distributions(set, x_lim = c(0, 12), x_breaks = c(0, 6, 12), text_size = 7) %>% gs("sample_dist", 10, 10)),
-    tar_target(png_kernels, plot_kernel_comparison(set) %>% gs("kernels", 6, 3)),
+    tar_target(png_sample_dist, plot_sample_distributions(set, x_lim = c(0, 12), x_breaks = c(0, 6, 12), text_size = 7) |> gs("sample_dist", 10, 10)),
+    tar_target(png_kernels, plot_kernel_comparison(set) |> gs("kernels", 6, 3)),
     tar_target(fig_clustering, plot_clustering(set, colour_var = "batch")),
     tar_target(fig_clustering_circular, plot_clustering_circular(set, colour_var = "batch")),
     tar_target(fig_cormat, plot_distance_matrix(set)),
@@ -54,14 +54,14 @@ targets_report <- function() {
     tar_target(spectronaut_columns, get_file_columns(SPECTRONAUT_FILE)),
     tar_target(max_qvalue, max(set$qc$qvalue, na.rm = TRUE)),
     tar_target(n_all_proteins, nrow(set$info)),
-    tar_target(n_hit_proteins, set$dat$id %>% unique() %>% length()),
+    tar_target(n_hit_proteins, set$dat$id |> unique() |> length()),
     tar_target(n_full_detection, detection_samples(set)$n[1]),
     tar_target(n_samples, nrow(set$metadata)),
     
     tar_target(dal_day29_treatment_best_ids, Reduce(intersect, ups_day29)),
-    tar_target(dal_day29_treatment_best, set$info %>% filter(id %in% dal_day29_treatment_best_ids)),
+    tar_target(dal_day29_treatment_best, set$info |> filter(id %in% dal_day29_treatment_best_ids)),
     
-    tar_target(dal_dl_drug_vs_placebo_proteins, set$info %>% filter(id %in% dal_dl_drug_vs_placebo$treatmentdrug)),
+    tar_target(dal_dl_drug_vs_placebo_proteins, set$info |> filter(id %in% dal_dl_drug_vs_placebo$treatmentdrug)),
     
     tar_target(sav_csv, save_data_csv(set, "tab/full_data.csv"))
   )
