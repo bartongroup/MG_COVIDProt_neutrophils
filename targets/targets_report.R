@@ -23,6 +23,9 @@ targets_report <- function() {
 
   
   da_figures <- list(
+    tar_target(fig_dpp1, plot_protein(set, 2126)),
+    tar_target(fig_ddx58, plot_protein(set, 694)),
+    
     tar_target(fig_ma_full, plot_ma(da_full, fdr_limit = FDR_LIMIT) + ylim(-10, 10)),
     tar_target(fig_pdist_full, plot_pdist(da_full)),
     

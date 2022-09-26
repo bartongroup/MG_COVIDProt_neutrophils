@@ -44,7 +44,7 @@ read_spectronaut_long_data <- function(data_file, info_file, uni_gene, bad_sampl
     group_by(treatment, day) %>% 
     mutate(trep = row_number()) %>% 
     ungroup()
-  
+
   raw <- read_tsv(data_file, show_col_types = FALSE) %>% 
     rename_with(.fn = ~str_remove(., "^R.|^PG.")) %>% 
     janitor::clean_names() %>% 

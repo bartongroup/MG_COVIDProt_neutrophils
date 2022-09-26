@@ -3,6 +3,9 @@ title: "COVID neutrophiles study"
 subtitle: "or the pains of patient-based data"
 cache: true
 fig-align: center
+width: 1280
+height: 720
+self-contained: false
 format:
   revealjs:
     theme: white
@@ -45,7 +48,11 @@ Neutrophil elastase is a protease secreted by neutrophils during inflammation, d
 -   Brensocatib vs placebo trial of hospital COVID patients
 -   145 participants enrolled
 -   Neutrophils from blood samples were isolated
--   Let's do proteomics!
+
+. . .
+
+Let's do proteomics!
+
 
 ## The file {.smaller}
 
@@ -54,7 +61,7 @@ Neutrophil elastase is a protease secreted by neutrophils during inflammation, d
 ```{r head}
 options(width = 100)
 tar_read(spectronaut_head) |>
-  select(R.FileName, PG.ProteinAccessions, PG.ProteinDescriptions, PG.Qvalue, PG.Quantity) |> 
+  # select(R.FileName, PG.ProteinAccessions, PG.ProteinDescriptions, PG.ProteinNames, PG.Qvalue, PG.Quantity) |> 
   print(n = 100) 
 ```
 
@@ -72,21 +79,21 @@ tar_read(spectronaut_head) |>
 #| fig-align: center
 #| fig-width: 12
 #| fig-height: 7
-tar_read(fig_participant_1_29)
+tar_read(fig_participant_1_29) 
 ```
 
 ## Batch effects!
 
-::: {layout="[[-1], [-1, 2, -1], [-1]]"}
+::: {.absolute top="15%" left="25%" width="60%"}
 ```{r fig_batch_count}
 #| fig-width: 6
-tar_read(fig_counts_batch) 
+tar_read(fig_counts_batch)
 ```
 :::
 
 ## Participants
 
-::: {style="height: 80%; overflow-y: scroll;"}
+::: {style="height: 80%; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto;"}
 ```{r participants}
 tar_read(participants) |> 
   mutate(No = row_number(), .before = 1) |> 
@@ -100,29 +107,33 @@ tar_read(participants) |>
 
 ## Participants
 
+::: {.absolute top="25%" left="10%" width="80%"}
 ```{r fig_participant_stats}
 #| fig-width: 11
 #| fig-height: 3.5
 tar_read(fig_participat_stats) 
 ```
+:::
 
 ## Protein detection
 
+::: {.absolute top="15%" left="10%" width="90%"}
 ```{r detection}
 tar_read(fig_detection)
 ```
+:::
 
 ## Clustering
 
 ```{r fig_clustering}
-#| fig-height: 9
+#| fig-height: 7
 #| fig-align: center
-tar_read(fig_clustering_circular) 
+tar_read(fig_clustering_circular)
 ```
 
 ## PCA and UMAP
 
-::: {layout="[[1, 1]]"}
+::: {layout="[[-0.2], [1, 1]]"}
 ```{r pca}
 #| fig-width: 7
 tar_read(fig_pca)
@@ -134,13 +145,26 @@ tar_read(fig_umap)
 ```
 :::
 
+## Target protein {.smaller}
+
+Brensocatib is an orally delivered selective, competitive, and reversible inhibitor of DPP1.
+
+. . .
+
+::: {.absolute top="20%" left="30%" width="60%"}
+```{r fig_dpp1}
+#| fig-width: 5
+tar_read(fig_dpp1)
+```
+:::
+
 ## Differential abundance {.smaller}
 
-Full model
+##### Full model
 
 `~ treatment + day + batch + age_group + sex`
 
-Baseline
+##### Baseline
 
 -   treatment = placebo
 -   day = 1
@@ -159,9 +183,11 @@ tar_read(fig_ma_full)
 
 ## Batch effect examples
 
+::: {.absolute top="17%" left="10%" width="90%"}
 ```{r fig_batch_examples}
 tar_read(fig_batch_examples)
 ```
+:::
 
 ## Gene set enrichment for batch effect
 
@@ -200,7 +226,7 @@ tar_read(fig_ma_day29_b5) + ggtitle("Batch 5")
 
 ## Day 29 overlap
 
-::: {layout="[[-1], [-1, 5, -1], [-1]]"}
+::: {layout="[[-1], [-1, 4, -1], [-1]]"}
 ```{r day29_upset}
 #| fig-width: 6
 #| fig-height: 4
@@ -239,9 +265,9 @@ tar_read(fig_volcano_dl)
 :::
 
 ```{r dd_enrichment}
-tar_load(gse_dd)
-tb <- map_dfr(names(gse_dd), function(ont) {
-  gse_dd[[ont]] %>% 
+tar_load(gse_dl)
+tb <- map_dfr(names(gse_dl), function(ont) {
+  gse_dl[[ont]] %>% 
     filter(padj < 0.01) %>% 
     add_column(ontology = ont, .before = 1) %>% 
     mutate(
@@ -255,7 +281,7 @@ tb <- map_dfr(names(gse_dd), function(ont) {
 
 ## Gene-set enrichment drug
 
-::: {style="height: 80%; overflow-y: scroll;"}
+::: {style="height: 80%; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto;"}
 ```{r lograt_drug}
 tb %>%
   filter(contrast == "drug") %>%
@@ -267,7 +293,7 @@ tb %>%
 
 ## Gene-set enrichment placebo
 
-::: {style="height: 80%; overflow-y: scroll;"}
+::: {style="height: 80%; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto;"}
 ```{r lograt_placebo}
 tb %>%
   filter(contrast == "placebo") %>%
@@ -276,7 +302,6 @@ tb %>%
   fmt_scientific(padj, decimals = 1)
 ```
 :::
-
 
 ## Drug vs placebo
 
@@ -293,19 +318,54 @@ tar_read(fig_volcano_dl_drug_vs_placebo)
 tar_read(fig_dl_drug_vs_placebo) 
 ```
 
-## Conclusions?
+## Conclusions? {auto-animate=true}
 
-::: {.incremental}
+::: {.fragment .fade-in}
+This is not the end of the story
+:::
 
- - This is not the end of the story
- - Humans are more different than mice
- - Strong batch effects
- - Lots of replicates - meh
- - Messy!
+::: {.fragment .fade-in}
+Humans are more different than mice
+:::
 
+::: {.fragment .fade-in}
+Strong batch effects
+:::
+
+::: {.fragment .fade-in}
+Lots of replicates - meh
+:::
+
+::: {.fragment .fade-in}
+Messy!
 :::
 
 
+## Conclusions? {auto-animate=true}
+
+::: {style="margin-top: 100; margin-left: auto; margin-right: auto; font-size: 4em; color: red;"}
+Messy!
+:::
+
 ## This is what we do
 
+::::: {layout="[[-22, 54, -22], [100]]"}
+
 ![](images/needle.png)
+
+
+:::: {.fragment}
+::: {style="font-size: 0.5em"}
+Italian artist Sven Sachsalber, at *Palais de Tokyo* in Paris, searching for a needle in a haystack, hidden there by the museum's director (November 2014).
+:::
+::::
+
+:::: {.fragment}
+::: {style="font-size: 0.5em"}
+He found the needle after 18 hours.
+:::
+::::
+
+
+:::::
+

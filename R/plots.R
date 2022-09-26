@@ -212,7 +212,7 @@ plot_clustering <- function(set, text_size = 10, what = "abu_norm", dist.method 
 }
 
 plot_clustering_circular <- function(set, what = "abu_norm", dist.method = "euclidean",
-                                     clust.method = "complete", colour_var = "batch") {
+                                     clust.method = "complete", colour_var = "batch", shape_var = "treatment") {
   dat <- set$dat |> 
     left_join(set$metadata, by = "sample") |> 
     filter(!bad)
@@ -230,14 +230,20 @@ plot_clustering_circular <- function(set, what = "abu_norm", dist.method = "eucl
   m <- set$metadata |>
     filter(sample %in% ph$tip.label) |> 
     mutate(batch = str_glue("B{batch}"))
-  groups <- split(m$sample, m$batch)
+  batches <- split(m$sample, m$batch)
+  treatments <- split(m$sample, m$treatment)
+  days <- split(m$sample, m$day)
   
-  phg <- groupOTU(ph, groups)
+  phg <- ph |> 
+    groupOTU(batches, group_name = "batch") |> 
+    groupOTU(treatments, group_name = "treatment") |> 
+    groupOTU(days, group_name = "day") 
   
-  ggtree(phg, aes(colour = group), layout = "circular", branch.length = "none") +
+  ggtree(phg, aes(colour = batch, shape = factor(day, levels = levels(set$metadata$day))), layout = "daylight", branch.length = "none") +
     geom_tippoint() +
-    scale_colour_manual(values = c("black", okabe_ito_palette)) +
-    labs(colour = "Batch")
+    scale_colour_manual(values = okabe_ito_palette) +
+    #scale_shape_manual(values = c(16, 17)) +
+    labs(colour = "Batch", shape = "Day")
 }
   
 
