@@ -56,14 +56,15 @@ Let's do proteomics!
 
 ## The file {.smaller}
 
--   Spectronaut output, `r targets::tar_read(spectronaut_nrow) |> prettyNum(big.mark = ",")` rows
+Spectronaut output, `r targets::tar_read(spectronaut_nrow) |> prettyNum(big.mark = ",")` rows
 
+::: {style="font-size: 0.9em;"}
 ```{r head}
-options(width = 100)
-tar_read(spectronaut_head) |>
-  # select(R.FileName, PG.ProteinAccessions, PG.ProteinDescriptions, PG.ProteinNames, PG.Qvalue, PG.Quantity) |> 
-  print(n = 100) 
+options(width = 150)
+tar_read(spectronaut_head) |> 
+  print(n = 100)
 ```
+:::
 
 ## Design
 
