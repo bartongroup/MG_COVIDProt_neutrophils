@@ -2,13 +2,13 @@
 # KEGG uses NCBI identifiers internally, they need to be converted into Ensembl
 
 get_kegg <- function(species, bm_genes) {
-  bm <- bm_genes %>%
-    select(gene_name, ncbi_id) %>%
-    drop_na() %>%
+  bm <- bm_genes |>
+    select(gene_name, ncbi_id) |>
+    drop_na() |>
     distinct()
   lst <- KEGGREST::keggList("pathway", species)
   terms <- tibble(
-    term_id = names(lst) %>% str_remove("path:"),
+    term_id = names(lst) |> str_remove("path:"),
     term_name = lst
   )
   pb <- progress::progress_bar$new(total = nrow(terms))
@@ -19,15 +19,15 @@ get_kegg <- function(species, bm_genes) {
       # KEGG list of genes is a vector with alternate NCBI integer number
       # and gene description
       gns <-  pw[[1]]$GENE
-      ncbi_ids <- gns %>%
-        str_subset("^\\d+$") %>%
+      ncbi_ids <- gns |>
+        str_subset("^\\d+$") |>
         as.integer()
-      bm %>%
-        filter(ncbi_id %in% ncbi_ids) %>%
-        pull(gene_name) %>%
+      bm |>
+        filter(ncbi_id %in% ncbi_ids) |>
+        pull(gene_name) |>
         unique() # convert NCBI to Ensembl, warning: not one-to-one!
     }
-  }) %>%
+  }) |>
     set_names(terms$term_id)
 
   gene2term <- map_dfr(terms$term_id, function(tid) {

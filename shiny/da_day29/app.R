@@ -17,13 +17,13 @@ css <- "table{font-size: 11px; background-color: #EAF5FF}"
 
 cat("Reading data")
 set <- read_rds("../data.rds")
-da <- read_rds("../da_day29.rds") %>% 
+da <- read_rds("../da_day29.rds") |> 
   mutate(sel = FDR < 0.05)
 genes <- read_rds("../genes.rds")
 all_terms <- read_rds("../terms.rds")
 cat("\n")
 
-all_genes <- da$gene_name %>% unique()
+all_genes <- da$gene_name |> unique()
 contrasts <- levels(da$contrast)
 max_points <- 500
 
@@ -77,12 +77,12 @@ server <- function(input, output) {
   
   get_xy_data <- function() {
     if (input$plot_type == "Volcano") {
-      xy_data <- da %>% 
-        filter(contrast == input$contrast_sel) %>% 
+      xy_data <- da |> 
+        filter(contrast == input$contrast_sel) |> 
         mutate(x = logFC, y = -log10(PValue))
     } else if (input$plot_type == "MA") {
-      xy_data <- da %>% 
-        filter(contrast == input$contrast_sel) %>% 
+      xy_data <- da |> 
+        filter(contrast == input$contrast_sel) |> 
         mutate(x = AveExpr, y = logFC)
     } else {
       stop("Cowabunga!")
@@ -101,7 +101,7 @@ server <- function(input, output) {
       near <- nearPoints(xy_data, input$plot_hover, threshold = 20, maxpoints = max_hover)
       sel <- near$id
     } else if (length(tab_idx) > 0) {
-      sel <- xy_data[tab_idx, ] %>% pull(id)
+      sel <- xy_data[tab_idx, ] |> pull(id)
     }
     return(sel)
   }
@@ -110,9 +110,9 @@ server <- function(input, output) {
     sel <- select_protein()
     df <- NULL
     if (!is.null(sel) && length(sel) >= 1 && length(sel) <= max_points) {
-      df <- set$info %>%
-        filter(id %in% sel) %>% 
-        arrange(gene_names) %>% 
+      df <- set$info |>
+        filter(id %in% sel) |> 
+        arrange(gene_names) |> 
         select(gene_names, protein_descriptions)
     } else if (length(sel) > max_points) {
       df <- data.frame(Error = paste0('only ',max_points,' points can be selected.'))
@@ -129,9 +129,9 @@ server <- function(input, output) {
       sel <- brushed$id
       n <- length(sel)
       if (n > 0 && n <= max_points) {
-        sel_genes <- tibble(id = sel) %>% 
-          left_join(xy_data, by = "id") %>% 
-          pull(gene_name) %>% 
+        sel_genes <- tibble(id = sel) |> 
+          left_join(xy_data, by = "id") |> 
+          pull(gene_name) |> 
           unique()
         fe <- sh_enrichment(all_genes, sel_genes, terms)
       } else if (n > 0) {
@@ -169,9 +169,9 @@ server <- function(input, output) {
   })
 
   output$all_protein_table <- DT::renderDataTable({
-    d <- get_xy_data() %>%
-        select(id, gene_name, logFC, FDR) %>% 
-        mutate(across(c(logFC, FDR), ~signif(.x, 3))) %>% 
+    d <- get_xy_data() |>
+        select(id, gene_name, logFC, FDR) |> 
+        mutate(across(c(logFC, FDR), ~signif(.x, 3))) |> 
         left_join(select(set$info, id, protein_descriptions), by = "id")
     DT::datatable(d, class = 'cell-border strip hover', selection = "single", rownames = FALSE)
   })

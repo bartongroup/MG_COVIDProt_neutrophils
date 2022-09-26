@@ -195,13 +195,13 @@ tar_read(fig_batch_examples)
 ```{r gse_batch5}
 tar_load(gse_batch5)
 map_dfr(names(gse_batch5), function(ont) {
-  gse_batch5[[ont]] %>% 
-    filter(padj < 0.01) %>% 
-    add_column(ontology = ont, .before = 1) %>% 
-    mutate(across(c(pval, padj, NES), ~signif(.x, 3))) %>% 
-    select(ontology, term, term_name, padj, NES, size, contrast) %>% 
+  gse_batch5[[ont]] |> 
+    filter(padj < 0.01) |> 
+    add_column(ontology = ont, .before = 1) |> 
+    mutate(across(c(pval, padj, NES), ~signif(.x, 3))) |> 
+    select(ontology, term, term_name, padj, NES, size, contrast) |> 
     mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
-}) %>% 
+}) |> 
   gt()
 ```
 :::
@@ -237,8 +237,8 @@ upset(fromList(tar_read(ups_day29)))
 ## Day 29 best guess {.smaller}
 
 ```{r day29_best}
-tar_read(dal_day29_treatment_best) %>% 
-  select(-protein_names) %>% 
+tar_read(dal_day29_treatment_best) |> 
+  select(-protein_names) |> 
   gt()
 ```
 
@@ -267,14 +267,14 @@ tar_read(fig_volcano_dl)
 ```{r dd_enrichment}
 tar_load(gse_dl)
 tb <- map_dfr(names(gse_dl), function(ont) {
-  gse_dl[[ont]] %>% 
-    filter(padj < 0.01) %>% 
-    add_column(ontology = ont, .before = 1) %>% 
+  gse_dl[[ont]] |> 
+    filter(padj < 0.01) |> 
+    add_column(ontology = ont, .before = 1) |> 
     mutate(
       padj = signif(padj, 2),
       NES = signif(NES, 3)
     ) |> 
-    select(ontology, term, term_name, padj, NES, size, contrast) %>% 
+    select(ontology, term, term_name, padj, NES, size, contrast) |> 
     mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
 })
 ```
@@ -283,8 +283,8 @@ tb <- map_dfr(names(gse_dl), function(ont) {
 
 ::: {style="height: 80%; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto;"}
 ```{r lograt_drug}
-tb %>%
-  filter(contrast == "drug") %>%
+tb |>
+  filter(contrast == "drug") |>
   select(-contrast) |> 
   gt() |> 
   fmt_scientific(padj, decimals = 1)
@@ -295,8 +295,8 @@ tb %>%
 
 ::: {style="height: 80%; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto;"}
 ```{r lograt_placebo}
-tb %>%
-  filter(contrast == "placebo") %>%
+tb |>
+  filter(contrast == "placebo") |>
   select(-contrast) |> 
   gt() |> 
   fmt_scientific(padj, decimals = 1)

@@ -14,18 +14,18 @@ FDR_LIMIT <- 0.01
 BAD_SAMPLES <- c("D5_01-45")
 
 make_metadata_ <- function(s_file) {
-  read_tsv(s_file, show_col_types = FALSE) %>% 
+  read_tsv(s_file, show_col_types = FALSE) |> 
     mutate(
-      sample = raw_sample %>% str_remove("-N"),
+      sample = raw_sample |> str_remove("-N"),
       treatment = if_else(str_detect(raw_sample, "ST"), "drug", "placebo"),
       batch = 1
-    ) %>% 
-    mutate(batch = as_factor(batch)) %>% 
-    mutate(day = sample %>%
-             str_remove("-\\D+$") %>%
-             str_extract("\\d+$") %>%
-             na_if("006") %>% na_if("007") %>% 
-             as.numeric() %>%
+    ) |> 
+    mutate(batch = as_factor(batch)) |> 
+    mutate(day = sample |>
+             str_remove("-\\D+$") |>
+             str_extract("\\d+$") |>
+             na_if("006") |> na_if("007") |> 
+             as.numeric() |>
              as_factor()
     )
 }

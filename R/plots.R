@@ -6,13 +6,13 @@ gs <- function(gg, name, width, height) {
 }
 
 plot_volma <- function(res, group, point_size, point_alpha) {
-  r <- res %>%
+  r <- res |>
     mutate(
       group = get(group)
-    ) %>% 
+    ) |> 
     select(x, y, sel, group)
-  r_sel <- r %>% filter(sel)
-  r_nsel <- r %>% filter(!sel)
+  r_sel <- r |> filter(sel)
+  r_nsel <- r |> filter(!sel)
 
   rm(res, r)  # Minimise environment for serialisation
     
@@ -35,12 +35,12 @@ plot_volma <- function(res, group, point_size, point_alpha) {
 
 plot_ma <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR", group = "contrast",
                     fdr_limit = 0.05, point_size = 0.5, point_alpha = 0.5) {
-  res %>% 
+  res |> 
     mutate(
       x = get(a),
       y = get(fc),
       sel = get(fdr) < fdr_limit
-    ) %>% 
+    ) |> 
     plot_volma(group, point_size, point_alpha) +
     geom_hline(yintercept = 0, size = 0.1, alpha = 0.5) +
     labs(x = expression(log[10]~Intensity), y = expression(log[2]~FC))
@@ -48,12 +48,12 @@ plot_ma <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR",
 
 plot_volcano <- function(res, fc = "logFC", p = "PValue", fdr = "FDR", group = "contrast",
                          fdr_limit = 0.05, point_size = 0.5, point_alpha = 0.5) {
-  res %>% 
+  res |> 
     mutate(
       x = get(fc),
       y = -log10(get(p)),
       sel = get(fdr) < fdr_limit
-    ) %>% 
+    ) |> 
     plot_volma(group, point_size, point_alpha) +
     geom_vline(xintercept = 0, size = 0.1, alpha = 0.5) +
     labs(x = expression(log[2]~FC), y = expression(-log[10]~P)) +
@@ -62,8 +62,8 @@ plot_volcano <- function(res, fc = "logFC", p = "PValue", fdr = "FDR", group = "
 
 plot_pdist <- function(res, p = "PValue", group = "contrast", n_bins = 50) {
   brks <- seq(0, 1, length.out = n_bins)
-  r <- res %>% 
-    mutate(p = get(p), grp = get(group)) %>% 
+  r <- res |> 
+    mutate(p = get(p), grp = get(group)) |> 
     select(p, grp)
   rm(res)
   ggplot(r, aes(x = p, y = after_stat(density))) +
@@ -76,16 +76,16 @@ plot_pdist <- function(res, p = "PValue", group = "contrast", n_bins = 50) {
 
 
 plot_up_down <- function(res, fc = "logFC", fdr = "FDR", group = "contrast", fdr_limit = 0.05) {
-  r <- res %>%
+  r <- res |>
     mutate(
       direction = if_else(get(fc) > 0, "up", "down"),
       sig = get(fdr) < fdr_limit,
       group = get(group)
-    ) %>% 
-    filter(sig) %>% 
-    group_by(group, direction, .drop = FALSE) %>% 
-    tally() %>%
-    mutate(x = if_else(direction == "down", -n, n)) %>% 
+    ) |> 
+    filter(sig) |> 
+    group_by(group, direction, .drop = FALSE) |> 
+    tally() |>
+    mutate(x = if_else(direction == "down", -n, n)) |> 
     mutate(adj = -1.3 * sign(x) / 2 + 0.5)
   rm(res)
   ggplot(r, aes(x = x, y = group, fill = direction)) +
@@ -114,13 +114,13 @@ make_hist <- function(x, bins) {
 
 plot_sample_distributions <- function(set, bins = 100, ncol = 15, what = "abu_norm", colour_var = "treatment",
                                       x_breaks = c(-5, 0, 5), text_size = 10, x_lim = c(-5, 5)) {
-  d <- set$dat %>% 
-    left_join(set$metadata, by = "sample") %>% 
-    mutate(val = get(what), colvar = get(colour_var)) %>% 
-    select(sample, val, colvar) %>% 
-    nest(data = val) %>% 
-    mutate(hist = map(data, ~make_hist(.x$val, bins = bins))) %>% 
-    select(-data) %>% 
+  d <- set$dat |> 
+    left_join(set$metadata, by = "sample") |> 
+    mutate(val = get(what), colvar = get(colour_var)) |> 
+    select(sample, val, colvar) |> 
+    nest(data = val) |> 
+    mutate(hist = map(data, ~make_hist(.x$val, bins = bins))) |> 
+    select(-data) |> 
     unnest(hist)
   w <- d$x[2] - d$x[1]
   
@@ -147,14 +147,14 @@ plot_sample_distributions <- function(set, bins = 100, ncol = 15, what = "abu_no
 }
 
 plot_kernels <- function(set, what = "abu_norm", xlab = "Normalised abundance") {
-  d <- set$dat %>% 
-    mutate(val = get(what)) %>% 
-    select(sample, val) %>% 
-    nest(data = val) %>% 
+  d <- set$dat |> 
+    mutate(val = get(what)) |> 
+    select(sample, val) |> 
+    nest(data = val) |> 
     mutate(
-      krn = map(data, ~density(.x$val, bw = "SJ") %>% tidy())
-    ) %>% 
-    select(-c(data)) %>% 
+      krn = map(data, ~density(.x$val, bw = "SJ") |> tidy())
+    ) |> 
+    select(-c(data)) |> 
     unnest(krn)
   rm(set)
   ggplot(d, aes(x = x, y = y, group = sample)) +
@@ -177,19 +177,19 @@ plot_clustering <- function(set, text_size = 10, what = "abu_norm", dist.method 
                             clust.method = "complete", colour_var = "treatment") {
   tab <- dat2mat(set$dat, what)
   
-  dendr <- t(tab) %>% 
-    dist(method = dist.method) %>% 
-    hclust(method = clust.method) %>%
-    dendsort::dendsort() %>% 
+  dendr <- t(tab) |> 
+    dist(method = dist.method) |> 
+    hclust(method = clust.method) |>
+    dendsort::dendsort() |> 
     ggdendro::dendro_data()
   
   seg <- ggdendro::segment(dendr)
-  meta <- set$metadata %>%
+  meta <- set$metadata |>
     mutate(
       colvar = get(colour_var),
       sample = as.character(sample)
     )
-  labs <- left_join(dendr$labels %>% mutate(label = as.character(label)), meta, by = c("label" = "sample")) %>% 
+  labs <- left_join(dendr$labels |> mutate(label = as.character(label)), meta, by = c("label" = "sample")) |> 
     mutate(colour = okabe_ito_palette[as_factor(colvar)])
   theme.d <- ggplot2::theme(
     panel.grid.major = ggplot2::element_blank(),
@@ -221,8 +221,8 @@ plot_clustering_circular <- function(set, what = "abu_norm", dist.method = "eucl
   gd <- which(rowSums(is.na(tab)) == 0)
   tab <- tab[gd, ]
   
-  ph <- t(tab) %>% 
-    dist(method = dist.method) %>% 
+  ph <- t(tab) |> 
+    dist(method = dist.method) |> 
     hclust(method = clust.method) |> 
     ape::as.phylo() |> 
     ape::unroot()
@@ -251,10 +251,10 @@ plot_clustering_circular <- function(set, what = "abu_norm", dist.method = "eucl
 plot_distance_matrix <- function(set, what = "abu_norm", text_size = 10) {
   tab <- dat2mat(set$dat, what)
   
-  d <- cor(tab, use = "complete.obs") %>% 
-    as_tibble(rownames = "sample") %>%
-    pivot_longer(-sample) %>% 
-    mutate(sample = factor(sample, levels = set$metadata$sample)) %>% 
+  d <- cor(tab, use = "complete.obs") |> 
+    as_tibble(rownames = "sample") |>
+    pivot_longer(-sample) |> 
+    mutate(sample = factor(sample, levels = set$metadata$sample)) |> 
     mutate(name = factor(name, levels = set$metadata$sample))
   
   rm(set, tab)
@@ -270,8 +270,8 @@ plot_distance_matrix <- function(set, what = "abu_norm", text_size = 10) {
 
 
 plot_xy <- function(dat, colour_var, shape_var, point_size = 1) {
-  dat %>% 
-    rename(colvar = !!colour_var, shapevar = !!shape_var) %>% 
+  dat |> 
+    rename(colvar = !!colour_var, shapevar = !!shape_var) |> 
   ggplot(aes(x = x, y = y, colour = colvar, shape = shapevar)) +
     theme_bw() +
     geom_point(size = point_size) +
@@ -285,17 +285,17 @@ plot_xy <- function(dat, colour_var, shape_var, point_size = 1) {
 }
 
 pca2xy <- function(pc, meta) {
-  pc$x %>% 
-    as_tibble(rownames = "sample") %>% 
-    select(x = PC1, y = PC2, sample) %>% 
+  pc$x |> 
+    as_tibble(rownames = "sample") |> 
+    select(x = PC1, y = PC2, sample) |> 
     left_join(meta, by = "sample")
 }
 
 umap2xy <- function(um, meta) {
   colnames(um) <- c("x", "y")
-  um %>% 
-    as_tibble() %>% 
-    mutate(sample = meta$sample) %>% 
+  um |> 
+    as_tibble() |> 
+    mutate(sample = meta$sample) |> 
     left_join(meta, by = "sample")
 }
 
@@ -310,7 +310,7 @@ plot_pca <- function(set, point_size = 2, what = "abu_norm", colour_var = "treat
   var.perc <- 100 * (pca$sdev)^2 / sum((pca$sdev)^2)
   pca1 <- sprintf("PCA1 (%5.1f%%)", var.perc[1])
   pca2 <- sprintf("PCA2 (%5.1f%%)", var.perc[2])
-  pca2xy(pca, set$metadata) %>% 
+  pca2xy(pca, set$metadata) |> 
     plot_xy(colour_var, shape_var, point_size) +
     labs(x = pca1, y = pca2)
 }
@@ -327,27 +327,27 @@ plot_umap <- function(set, what = "abu_norm", point_size = 2, seed = 1,
     tab <- tab[as.character(id_sel), ]
   if (!is.null(sample_sel)) {
     tab <- tab[, sample_sel]
-    meta <- meta %>% filter(sample %in% sample_sel)
+    meta <- meta |> filter(sample %in% sample_sel)
   }
   
   set.seed(seed)
   tab <- tab[apply(tab, 1, function(v) sum(is.na(v)) == 0), ]
-  uwot::umap(t(tab), n_neighbors = n_neighbours, min_dist = min_dist) %>% 
-    umap2xy(meta) %>% 
+  uwot::umap(t(tab), n_neighbors = n_neighbours, min_dist = min_dist) |> 
+    umap2xy(meta) |> 
     plot_xy(colour_var, shape_var, point_size)
 }
 
 plot_k_umap <- function(ku, point_size = 2) {
-  ku %>% 
+  ku |> 
     plot_xy(point_size = point_size)
 }
 
 plot_detection <- function(set) {
   cumcurve <- function(d, what) {
-    d %>%
-      group_by(get(what)) %>% 
-      tally() %>%
-      arrange(desc(n)) %>% 
+    d |>
+      group_by(get(what)) |> 
+      tally() |>
+      arrange(desc(n)) |> 
       mutate(x = row_number())
   }
   plotcurve <- function(d) {
@@ -370,8 +370,8 @@ plot_detection <- function(set) {
 }
 
 plot_sample_detection <- function(set) {
-  d <- set$dat %>% 
-    group_by(sample) %>% 
+  d <- set$dat |> 
+    group_by(sample) |> 
     tally()
   rm(set)
   ggplot(d, aes(x = n, y = fct_reorder(sample, n))) +
@@ -382,9 +382,9 @@ plot_sample_detection <- function(set) {
 }
 
 plot_unique_pep <- function(set, min_pep) {
-  d <- set$qc %>% 
-    group_by(unique_pep) %>%
-    tally() %>% 
+  d <- set$qc |> 
+    group_by(unique_pep) |>
+    tally() |> 
     mutate(uni = unique_pep < min_pep)
   rm(set)
   ggplot(d, aes(x = unique_pep, y = n, fill = uni)) +
@@ -404,48 +404,48 @@ plot_unique_pep <- function(set, min_pep) {
 plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
                              id_sel = NULL, sample_sel = NULL, order_col = TRUE,
                              text.size = 8, get_mean = FALSE, with_y_text = FALSE) {
-  d <- set$dat %>% 
+  d <- set$dat |> 
     mutate(val = get(what))
   meta <- set$metadata
   
   if (!is.null(sample_sel))
-    d <- d %>% filter(sample %in% sample_sel)
+    d <- d |> filter(sample %in% sample_sel)
   if (!is.null(id_sel))
-    d <- d %>% filter(id %in% id_sel)
+    d <- d |> filter(id %in% id_sel)
   
   if (get_mean) {
-    d <- d %>% 
-      left_join(set$metadata, by = "sample") %>% 
-      group_by(id, treatment, day) %>% 
-      summarise(val = mean(val)) %>% 
+    d <- d |> 
+      left_join(set$metadata, by = "sample") |> 
+      group_by(id, treatment, day) |> 
+      summarise(val = mean(val)) |> 
       unite(sample, c(treatment, day))
-    meta <- meta %>% 
-      select(-sample) %>% 
-      unite(sample, c(treatment, day), remove = FALSE) %>% 
-      select(sample, treatment, day) %>% 
-      distinct() %>% 
+    meta <- meta |> 
+      select(-sample) |> 
+      unite(sample, c(treatment, day), remove = FALSE) |> 
+      select(sample, treatment, day) |> 
+      distinct() |> 
       add_column(bad = FALSE)
   }
   
-  d <- d %>% 
-    group_by(id) %>% 
+  d <- d |> 
+    group_by(id) |> 
     mutate(
       n = n(),
       fc = val - mean(val)
-    ) %>% 
+    ) |> 
     filter(n > min_n)
   tab <- dat2mat(d, "fc")
   
-  smeta <- meta %>% 
-    filter(sample %in% colnames(tab) & !bad) %>% 
+  smeta <- meta |> 
+    filter(sample %in% colnames(tab) & !bad) |> 
     arrange(treatment, day)  
-  smpls <- smeta %>% pull(sample)
+  smpls <- smeta |> pull(sample)
 
   tab <- tab[, smpls]
   
-  genes <- tibble(id = rownames(tab) %>% as.integer()) %>% 
-    left_join(set$info, by = "id") %>% 
-    unite(gid, c(id, gene_names), sep = "-") %>% 
+  genes <- tibble(id = rownames(tab) |> as.integer()) |> 
+    left_join(set$info, by = "id") |> 
+    unite(gid, c(id, gene_names), sep = "-") |> 
     pull(gid)
   rownames(tab) <- genes
 
@@ -458,26 +458,26 @@ plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
 plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch", shape_var = "sex",
                          ncol = NULL, point_size = 1.5, filt = "completion",
                          sample_sel = NULL) {
-  info <- set$info %>% 
-    filter(id %in% pids) %>% 
-    mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) %>% 
+  info <- set$info |> 
+    filter(id %in% pids) |> 
+    mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) |> 
     mutate(prot = glue::glue("{gene_names}: {protein_descriptions}"))
-  d <- set$dat %>%
-    mutate(val = get(what)) %>% 
-    filter(id %in% pids) %>%
-    left_join(set$metadata, by = "sample") %>% 
-    filter(!bad & !!rlang::parse_expr(filt)) %>% 
-    rename(colvar = !!colour_var, shapevar = !!shape_var) %>% 
-    arrange(treatment, day) %>% 
-    unite(x, c(treatment, day)) %>% 
-    mutate(x = as_factor(x), xi = as.integer(x)) %>% 
-    left_join(info, by = "id") %>% 
+  d <- set$dat |>
+    mutate(val = get(what)) |> 
+    filter(id %in% pids) |>
+    left_join(set$metadata, by = "sample") |> 
+    filter(!bad & !!rlang::parse_expr(filt)) |> 
+    rename(colvar = !!colour_var, shapevar = !!shape_var) |> 
+    arrange(treatment, day) |> 
+    unite(x, c(treatment, day)) |> 
+    mutate(x = as_factor(x), xi = as.integer(x)) |> 
+    left_join(info, by = "id") |> 
     select(id, sample, prot, x, xi, val, colvar, shapevar)
   if (!is.null(sample_sel))
-    d <- d %>% filter(sample %in% sample_sel)
-  dm <- d %>% 
-    group_by(id, prot, xi) %>% 
-    summarise(M = mean(val), n = n()) %>% 
+    d <- d |> filter(sample %in% sample_sel)
+  dm <- d |> 
+    group_by(id, prot, xi) |> 
+    summarise(M = mean(val), n = n()) |> 
     filter(n > 1)
   rm(set)
   ggplot(d, aes(x = x, y = val)) +
@@ -498,19 +498,19 @@ plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch", sha
 
 
 plot_lograt_protein <- function(df, pids, ncol = NULL, colour_var = "age_group", shape_var = "sex", filt = "completion") {
-  info <- df$info %>% 
-    filter(id %in% pids) %>% 
-    mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) %>% 
+  info <- df$info |> 
+    filter(id %in% pids) |> 
+    mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) |> 
     mutate(prot = glue::glue("{gene_names}: {protein_descriptions}"))
-  d <- df$dat %>% 
-    filter(id %in% pids) %>% 
-    left_join(df$metadata, by = "participant_id") %>% 
-    filter(!bad & !!rlang::parse_expr(filt)) %>% 
-    rename(colvar = !!colour_var, shapevar = !!shape_var) %>% 
-    left_join(info, by = "id") %>% 
+  d <- df$dat |> 
+    filter(id %in% pids) |> 
+    left_join(df$metadata, by = "participant_id") |> 
+    filter(!bad & !!rlang::parse_expr(filt)) |> 
+    rename(colvar = !!colour_var, shapevar = !!shape_var) |> 
+    left_join(info, by = "id") |> 
     mutate(x = as_factor(treatment), xi = as.integer(x))
-  dm <- d %>% 
-    group_by(id, prot, xi) %>% 
+  dm <- d |> 
+    group_by(id, prot, xi) |> 
     summarise(M = mean(logFC))
   rm(df)
   ggplot(d, aes(x = x, y = logFC)) +
@@ -528,19 +528,19 @@ plot_lograt_protein <- function(df, pids, ncol = NULL, colour_var = "age_group",
 
 
 plot_protein_coverage <- function(qc) {
-  cov_mean <- qc %>%
-    filter(coverage > 0) %>% 
-    group_by(id) %>%
-    summarise(M = mean(coverage)) %>%
-    arrange(M) %>%
+  cov_mean <- qc |>
+    filter(coverage > 0) |> 
+    group_by(id) |>
+    summarise(M = mean(coverage)) |>
+    arrange(M) |>
     mutate(x = row_number())
-  d <- qc %>% 
-    filter(coverage > 0) %>% 
-    left_join(cov_mean, by = "id") %>% 
+  d <- qc |> 
+    filter(coverage > 0) |> 
+    left_join(cov_mean, by = "id") |> 
     select(x, coverage)
   rm(qc, cov_mean)
   
-  d %>% 
+  d |> 
     ggplot(aes(x = x, y = coverage)) +
     theme_bw() +
     theme(panel.grid = element_blank()) +
@@ -552,9 +552,9 @@ plot_protein_coverage <- function(qc) {
 
 plot_participant_1_29 <- function(meta) {
   pp <- get_full_participants(meta)
-  meta %>%
-    left_join(pp, by = "participant_id") %>% 
-    mutate(`both 1 and 29` = !is.na(first)) %>% 
+  meta |>
+    left_join(pp, by = "participant_id") |> 
+    mutate(`both 1 and 29` = !is.na(first)) |> 
   ggplot(aes(x = participant_id, y = day, group = participant_id, fill = batch, colour = `both 1 and 29`, shape = completion)) +
     theme_bw() +
     theme(
@@ -572,10 +572,10 @@ plot_participant_1_29 <- function(meta) {
 }
 
 plot_meta_numbers <- function(meta, fill_var = "batch") {
-  meta %>% 
-    mutate(fillvar = get(fill_var)) %>% 
-    group_by(treatment, day, fillvar) %>% 
-    tally() %>% 
+  meta |> 
+    mutate(fillvar = get(fill_var)) |> 
+    group_by(treatment, day, fillvar) |> 
+    tally() |> 
   ggplot(aes(x = day, y = n, fill = fillvar)) +
     theme_bw() +
     theme(
@@ -606,9 +606,9 @@ plot_paricipant_stats <- function(part) {
   th <- theme_bw() +
     theme(panel.grid = element_blank())
   p_d <- function(x, name) {
-    tibble(x = x) %>% 
-      group_by(x) %>% 
-      tally() %>% 
+    tibble(x = x) |> 
+      group_by(x) |> 
+      tally() |> 
       ggplot(aes(x = x, y = n)) +
       th +
       geom_col() +
@@ -616,9 +616,9 @@ plot_paricipant_stats <- function(part) {
       labs(x = name, y = NULL)
   }
   p_c <- function(x, name) {
-    tibble(x = x) %>% 
-      group_by(x) %>% 
-      tally() %>% 
+    tibble(x = x) |> 
+      group_by(x) |> 
+      tally() |> 
       ggplot(aes(x = x, xend = x, y = n, yend = 0)) +
       th +
       geom_segment(colour = "grey60") +
@@ -640,29 +640,29 @@ plot_paricipant_stats <- function(part) {
 }
 
 plot_fc_fc <- function(df1, df2, info, labx = "x", laby = "y", logfc_limit = 0.01, dif_limit = 1) {
-  d <- df1 %>%
-    full_join(df2, by = "id") %>%
-    left_join(info, by = "id") %>%
-    filter(FDR.x < logfc_limit | FDR.y < logfc_limit) %>% 
+  d <- df1 |>
+    full_join(df2, by = "id") |>
+    left_join(info, by = "id") |>
+    filter(FDR.x < logfc_limit | FDR.y < logfc_limit) |> 
     mutate(dif = abs(logFC.x - logFC.y))
   
   ggplot(d, aes(x = logFC.x, y = logFC.y)) +
     theme_bw() +
     geom_point(colour = "grey50") +
     geom_abline(slope = 1, intercept = 0, colour = "red") +
-    geom_text_repel(data = d %>% filter(dif > dif_limit), aes(label = gene_names)) +
+    geom_text_repel(data = d |> filter(dif > dif_limit), aes(label = gene_names)) +
     labs(x = labx, y = laby)
 }
 
 
 make_upset_batch_run <- function(meta) {
-  batch_list <- meta %>% 
-    group_split(batch) %>% 
-    map(\(x) pull(x, sample)) %>% 
+  batch_list <- meta |> 
+    group_split(batch) |> 
+    map(\(x) pull(x, sample)) |> 
     set_names(str_c("batch_", levels(meta$batch)))
-  run_list <- meta %>% 
-    group_split(run_index) %>% 
-    map(\(x) pull(x, sample)) %>% 
+  run_list <- meta |> 
+    group_split(run_index) |> 
+    map(\(x) pull(x, sample)) |> 
     set_names(str_c("run_", levels(meta$run_index)))
   c(batch_list, run_list)
 }
@@ -672,22 +672,22 @@ make_upset_batch_run <- function(meta) {
 plot_volcano_enrichment <- function(enrich_list, res, all_terms, ncol = NULL) {
   d <- map_dfr(1:nrow(enrich_list), function(i) {
     r <- enrich_list[i, ]
-    res_ctr <- res %>%
+    res_ctr <- res |>
       filter(contrast == r$contrast)
-    term_genes <- all_terms[[r$ontology]]$gene2term %>% 
-      filter(term_id == r$term_id) %>% 
+    term_genes <- all_terms[[r$ontology]]$gene2term |> 
+      filter(term_id == r$term_id) |> 
       pull(gene_name)
-    res_ctr %>% 
-      mutate(sel = gene_name %in% term_genes) %>% 
-      add_column(ontology = r$ontology, term_id = r$term_id) %>% 
-      left_join(all_terms[[r$ontology]]$terms, by = "term_id") %>% 
+    res_ctr |> 
+      mutate(sel = gene_name %in% term_genes) |> 
+      add_column(ontology = r$ontology, term_id = r$term_id) |> 
+      left_join(all_terms[[r$ontology]]$terms, by = "term_id") |> 
       mutate(group = str_glue("{contrast} | {term_id} - {term_name}"))
-  }) %>% 
+  }) |> 
     mutate(x = logFC, y = -log10(PValue))
 
-  d_sel <- d %>% 
+  d_sel <- d |> 
     filter(sel)
-  d_lab <- d_sel %>% 
+  d_lab <- d_sel |> 
     filter(abs(logFC) > 1.5 | FDR < 0.05)
 
   ggplot() +
@@ -709,15 +709,15 @@ plot_volcano_enrichment <- function(enrich_list, res, all_terms, ncol = NULL) {
 
 
 plot_batch_dependence <- function(meta, coef = "age_group", filt = "TRUE") {
-  meta %>%
-    filter(!bad & !!rlang::parse_expr(filt)) %>% 
-    droplevels() %>% 
+  meta |>
+    filter(!bad & !!rlang::parse_expr(filt)) |> 
+    droplevels() |> 
     mutate(
       cf = get(coef),
       batch = str_glue("batch{batch}")
-    ) %>% 
-    group_by(batch, cf) %>% 
-    tally() %>% 
+    ) |> 
+    group_by(batch, cf) |> 
+    tally() |> 
   ggplot(aes(x = cf, y = n)) +
     theme_bw() +
     theme(panel.grid = element_blank()) +

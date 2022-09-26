@@ -45,7 +45,7 @@ library(DT)
 
 ```{r functions}
 myDT <- function(d) {
-  datatable(d, class = "table-condensed table-striped table-bordered", style = "bootstrap") %>% 
+  datatable(d, class = "table-condensed table-striped table-bordered", style = "bootstrap") |> 
     formatStyle(columns = colnames(d), fontSize = '90%')
 }
 N <- function(n) prettyNum(n, big.mark = ",")
@@ -180,7 +180,7 @@ The file I used is a protein quantification file and it contains the
 following columns:
 
 ```{r spectronaut_columns}
-tar_read(spectronaut_columns) %>% 
+tar_read(spectronaut_columns) |> 
   flextable()
 ```
 
@@ -210,22 +210,22 @@ We see that batch 1 and 2 are very small (we are going to ignore these data when
 #### Treatment and day
 
 ```{r meta_day}
-tar_read(metadata) %>%
-  group_by(treatment, day) %>% 
-  tally() %>% 
-  flextable() %>% 
-  theme_box() %>% 
+tar_read(metadata) |>
+  group_by(treatment, day) |> 
+  tally() |> 
+  flextable() |> 
+  theme_box() |> 
   merge_v(j = 1)
 ```
 
 #### Batch and day
 
 ```{r meta_batch}
-tar_read(metadata) %>%
-  group_by(batch, day) %>% 
-  tally() %>% 
-  flextable() %>% 
-  theme_box() %>% 
+tar_read(metadata) |>
+  group_by(batch, day) |> 
+  tally() |> 
+  flextable() |> 
+  theme_box() |> 
   merge_v(j = 1)
 ```
 
@@ -238,11 +238,11 @@ tar_read(fig_counts_run)
 MS runs are subsets of batches:
 
 ```{r meta_batch_run}
-tar_read(metadata) %>%
-  group_by(batch, run_index) %>% 
-  tally() %>% 
-  flextable() %>% 
-  theme_box() %>% 
+tar_read(metadata) |>
+  group_by(batch, run_index) |> 
+  tally() |> 
+  flextable() |> 
+  theme_box() |> 
   merge_v(j = 1)
 ```
 
@@ -260,9 +260,9 @@ sample name consists of the following:
 -   'replicate' number (1 .. n, within given treatment/batch/day)
 
 ```{r meta}
-m <- tar_read(metadata) %>% 
+m <- tar_read(metadata) |> 
   select(sample, raw_sample, batch, run_index, participant_id, treatment, day, age, sex, completion)
-DT::datatable(m) %>%  formatStyle(columns = colnames(m), fontSize = '80%')
+DT::datatable(m) |>  formatStyle(columns = colnames(m), fontSize = '80%')
 ```
 
 ## Participants
@@ -297,10 +297,10 @@ There is a dramatic drop at the end of the right panel, which is due to one samp
 
 
 ```{r bad_samples}
-m <- tar_read(metadata) %>% 
-  filter(bad) %>% 
+m <- tar_read(metadata) |> 
+  filter(bad) |> 
   select(sample, raw_sample, batch, participant_id, treatment, day, age, sex, completion)
-flextable(m) %>% 
+flextable(m) |> 
   width(j = 1:2, width = 1.3)
 ```
 
@@ -419,13 +419,13 @@ Trypsin is an extreme example where batches 4 and 5 differ by almost 3 orders of
 ```{r gse_batch5}
 tar_load(gse_batch5)
 map_dfr(names(gse_batch5), function(ont) {
-  gse_batch5[[ont]] %>% 
-    filter(padj < 0.01) %>% 
-    add_column(ontology = ont, .before = 1) %>% 
-    mutate(across(c(pval, padj, NES), ~signif(.x, 3))) %>% 
-    select(ontology, term, term_name, padj, NES, size, contrast) %>% 
+  gse_batch5[[ont]] |> 
+    filter(padj < 0.01) |> 
+    add_column(ontology = ont, .before = 1) |> 
+    mutate(across(c(pval, padj, NES), ~signif(.x, 3))) |> 
+    select(ontology, term, term_name, padj, NES, size, contrast) |> 
     mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
-}) %>% 
+}) |> 
   DT::datatable()
 ```
 
@@ -479,10 +479,10 @@ upset(fromList(tar_read(ups_day29)))
 The only proteins in agreement between three selections are:
 
 ```{r day29_best}
-tar_read(dal_day29_treatment_best) %>% 
-  select(-protein_names) %>% 
-  flextable() %>% 
-  width(2, 2) %>% 
+tar_read(dal_day29_treatment_best) |> 
+  select(-protein_names) |> 
+  flextable() |> 
+  width(2, 2) |> 
   width(3, 3)
 ```
 
@@ -497,10 +497,10 @@ tar_read(fig_day29_best)
 There is one persistent outlier keeping high levels of AZU1 and CTSG on day 29. It is the same participant, ID 1132, one of the youngest in the cohort:
 
 ```{r part1132}
-tar_read(metadata) %>% 
-  filter(participant_id == 1132) %>% 
-  select(participant_id, age, sex, time_from_symptoms, completion) %>% 
-  distinct() %>% 
+tar_read(metadata) |> 
+  filter(participant_id == 1132) |> 
+  select(participant_id, age, sex, time_from_symptoms, completion) |> 
+  distinct() |> 
   flextable()
 ```
 
@@ -527,11 +527,11 @@ This should give us differential abundance in time (days 1 and 29), corrected fo
 ```{r dd_enrichment}
 tar_load(gse_dd)
 tb <- map_dfr(names(gse_dd), function(ont) {
-  gse_dd[[ont]] %>% 
-    filter(padj < 0.01) %>% 
-    add_column(ontology = ont, .before = 1) %>% 
-    mutate(across(c(pval, padj, NES), ~signif(.x, 3))) %>% 
-    select(ontology, term, term_name, padj, NES, size, contrast) %>% 
+  gse_dd[[ont]] |> 
+    filter(padj < 0.01) |> 
+    add_column(ontology = ont, .before = 1) |> 
+    mutate(across(c(pval, padj, NES), ~signif(.x, 3))) |> 
+    select(ontology, term, term_name, padj, NES, size, contrast) |> 
     mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
 })
 ```
@@ -547,14 +547,14 @@ tar_read(fig_volcano_dl)
 
 
 ```{r fig_dd_placebo, fig.width=4, fig.height=3}
-DT::datatable(tb %>% filter(contrast == "placebo") %>% select(-contrast))
+DT::datatable(tb |> filter(contrast == "placebo") |> select(-contrast))
 ```
 
 ### Drug set_enrichment
 
 
 ```{r fig_dd_drug, fig.width=4, fig.height=3}
-DT::datatable(tb %>% filter(contrast == "drug") %>% select(-contrast))
+DT::datatable(tb |> filter(contrast == "drug") |> select(-contrast))
 ```
 
 ### Drug vs placebo
@@ -569,7 +569,7 @@ Here are the significant proteins:
 
 ```{r dd_drug_vs_placebo}
 tar_load(dal_dl_drug_vs_placebo_proteins)
-DT::datatable(dal_dl_drug_vs_placebo_proteins %>% select(-protein_names)) 
+DT::datatable(dal_dl_drug_vs_placebo_proteins |> select(-protein_names)) 
 ```
 
 
@@ -594,8 +594,8 @@ knitr::include_graphics("../fig/gse_examples.png")
 Below is the full result of gene-set-enrichment procedure (excluding batch effects). The FDR level was set to 0.05. NES stands for normalised effect size and tells you how far the group of proteins annotated with this term is skewed in logFC. Small and large NES means proteins are predominantly down- or up-regulated, respectively. The last column contains up to 10 top most changing genes (in the same direction as NES).
 
 ```{r gse_results}
-tar_read(gse_da_day29_sig) %>% 
-  mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG")) %>% 
+tar_read(gse_da_day29_sig) |> 
+  mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG")) |> 
   DT::datatable()
 ```
 

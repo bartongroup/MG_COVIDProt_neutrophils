@@ -7,13 +7,13 @@ sh_enrichment <- function(genes_all, genes_sel, term_data, gene2name = NULL,
   term_info <- term_data$terms
   
   # select only terms represented in our gene set
-  gene2term <- gene2term %>%
+  gene2term <- gene2term |>
     filter(gene_name %in% genes_all)
   
   # all terms present in the selection
-  terms <- gene2term %>%
-    filter(gene_name %in% genes_sel) %>%
-    pull(term_id) %>%
+  terms <- gene2term |>
+    filter(gene_name %in% genes_sel) |>
+    pull(term_id) |>
     unique()
   
   # number of selected genes
@@ -22,17 +22,17 @@ sh_enrichment <- function(genes_all, genes_sel, term_data, gene2name = NULL,
   Nuni <- length(genes_all)
   
   # empty line for missing terms
-  na_term <- term_info %>% slice(1) %>% mutate_all(~NA)
+  na_term <- term_info |> slice(1) |> mutate_all(~NA)
   
   res <- map_dfr(terms, function(term) {
-    info <- term_info %>%
+    info <- term_info |>
       filter(term_id == term)
     # returns NAs if no term found
-    if (nrow(info) == 0) info <- na_term %>% mutate(term_id = term)
+    if (nrow(info) == 0) info <- na_term |> mutate(term_id = term)
     
     # all genes with the term
-    tgenes <- gene2term %>%
-      filter(term_id == term) %>%
+    tgenes <- gene2term |>
+      filter(term_id == term) |>
       pull(gene_name)
     # genes from selection with the term
     tgenes_sel <- intersect(tgenes, genes_sel)
@@ -45,7 +45,7 @@ sh_enrichment <- function(genes_all, genes_sel, term_data, gene2name = NULL,
     ft <- fisher.test(fish, alternative = "greater")
     p <- as.numeric(ft$p.value)
     
-    if (!is.null(gene2name)) tgenes_sel <- gene2name[tgenes_sel] %>% unname()
+    if (!is.null(gene2name)) tgenes_sel <- gene2name[tgenes_sel] |> unname()
     
     bind_cols(
       info,
@@ -58,10 +58,10 @@ sh_enrichment <- function(genes_all, genes_sel, term_data, gene2name = NULL,
         P = p
       )
     )
-  }) %>%
-    mutate(P = p.adjust(P, method = "BH")) %>%
-    filter(sel >= min_count & P <= sig_limit) %>%
-    arrange(desc(enrich)) %>%
+  }) |>
+    mutate(P = p.adjust(P, method = "BH")) |>
+    filter(sel >= min_count & P <= sig_limit) |>
+    arrange(desc(enrich)) |>
     mutate(enrich = round(enrich, 1), expect = round(expect, 2))
   
   res
@@ -70,22 +70,22 @@ sh_enrichment <- function(genes_all, genes_sel, term_data, gene2name = NULL,
 
 
 sh_plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch") {
-  info <- set$info %>% 
-    filter(id %in% pids) %>% 
-    mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) %>% 
+  info <- set$info |> 
+    filter(id %in% pids) |> 
+    mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) |> 
     mutate(prot = glue::glue("{gene_names}: {protein_descriptions}"))
-  d <- set$dat %>%
-    mutate(val = get(what)) %>% 
-    filter(id %in% pids) %>%
-    left_join(set$metadata, by = "sample") %>% 
-    rename(colvar = !!colour_var) %>% 
-    arrange(treatment, day) %>% 
-    unite(x, c(treatment, day)) %>% 
-    mutate(x = as_factor(x), xi = as.integer(x)) %>% 
-    left_join(info, by = "id") %>% 
+  d <- set$dat |>
+    mutate(val = get(what)) |> 
+    filter(id %in% pids) |>
+    left_join(set$metadata, by = "sample") |> 
+    rename(colvar = !!colour_var) |> 
+    arrange(treatment, day) |> 
+    unite(x, c(treatment, day)) |> 
+    mutate(x = as_factor(x), xi = as.integer(x)) |> 
+    left_join(info, by = "id") |> 
     select(id, prot, x, xi, val, colvar)
-  dm <- d %>% 
-    group_by(id, prot, xi) %>% 
+  dm <- d |> 
+    group_by(id, prot, xi) |> 
     summarise(M = mean(val))
   rm(set)
   ggplot(d, aes(x = x, y = val, colour = colvar)) +
@@ -116,14 +116,14 @@ sh_plot_volma <- function(res, point_size, point_alpha) {
 }
 
 sh_plot_ma <- function(res,  point_size = 0.5, point_alpha = 0.5) {
-  res %>% 
+  res |> 
     sh_plot_volma(point_size, point_alpha) +
     geom_hline(yintercept = 0, size = 0.1, alpha = 0.5) +
     labs(x = expression(log[10]~Intensity), y = expression(log[2]~FC))
 }
 
 sh_plot_volcano <- function(res, point_size = 0.5, point_alpha = 0.5) {
-  res %>% 
+  res |> 
     sh_plot_volma(point_size, point_alpha) +
     geom_vline(xintercept = 0, size = 0.1, alpha = 0.5) +
     labs(x = expression(log[2]~FC), y = expression(-log[10]~P)) +

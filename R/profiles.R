@@ -1,39 +1,39 @@
 make_time_profiles <- function(set, treat, what = "abu_norm", sel = NULL) {
-  d <- set$dat %>%
-    left_join(set$metadata, by = "sample") %>%
-    filter(!bad) %>% 
-    filter(treatment == treat) %>% 
-    droplevels() %>% 
-    mutate(val = get(what) / log10(2)) %>% 
-    group_by(id, day) %>%
-    summarise(m = mean(val)) %>%
-    ungroup() %>%
-    group_by(id) %>%
-    arrange(day) %>%
-    mutate(dif = m - m[1]) %>%
-    ungroup() %>% 
+  d <- set$dat |>
+    left_join(set$metadata, by = "sample") |>
+    filter(!bad) |> 
+    filter(treatment == treat) |> 
+    droplevels() |> 
+    mutate(val = get(what) / log10(2)) |> 
+    group_by(id, day) |>
+    summarise(m = mean(val)) |>
+    ungroup() |>
+    group_by(id) |>
+    arrange(day) |>
+    mutate(dif = m - m[1]) |>
+    ungroup() |> 
     pivot_wider(id_cols = id, names_from = day, values_from = dif)  
   if (!is.null(sel)) {
-    d <- d %>% filter(id %in% sel)
+    d <- d |> filter(id %in% sel)
   }
   d
 }
 
 cluster_time_profiles <- function(tpr, n_clust = 5) {
   tpr <- drop_na(tpr)
-  X <- tpr %>%
-    select(-c(id)) %>% 
+  X <- tpr |>
+    select(-c(id)) |> 
     as.matrix()
   km <- kmeans(X, centers = n_clust)
-  tpr %>% 
-    mutate(clust = km$cluster %>% as_factor()) %>% 
-    pivot_longer(-c(id, clust), names_to = "day", values_to = "log_fc") %>% 
+  tpr |> 
+    mutate(clust = km$cluster |> as_factor()) |> 
+    pivot_longer(-c(id, clust), names_to = "day", values_to = "log_fc") |> 
     mutate(day = as.numeric(day))
 }
 
 
 plot_cluster_profiles <- function(tpc) {
-  tpc %>% 
+  tpc |> 
     ggplot(aes(x = day, y = log_fc, group = id)) +
     theme_bw() +
     theme(panel.grid = element_blank()) +
@@ -46,9 +46,9 @@ plot_cluster_profiles <- function(tpc) {
 
 
 plot_prof_heatmap <- function(tpr, max_fc = 2) {
-  tpr %>% 
-    drop_na() %>% 
-    column_to_rownames("id") %>% 
+  tpr |> 
+    drop_na() |> 
+    column_to_rownames("id") |> 
     ggheatmap(order.col = FALSE, dendro.line.size = 0.1, max.fc = max_fc)
 }
 
@@ -58,29 +58,29 @@ plot_prof_heatmap <- function(tpr, max_fc = 2) {
 plot_gradients <- function(tpr) {
   days <- colnames(tpr)[-1]
   n <- length(days)
-  tb <- tibble(d1 = days[1:(n - 1)], d2 = days[2:n]) %>% 
-    rowwise() %>% 
+  tb <- tibble(d1 = days[1:(n - 1)], d2 = days[2:n]) |> 
+    rowwise() |> 
     mutate(pair = list(c(d1, d2)))
   xy <- map2_dfr(tb$pair[1:(n - 2)], tb$pair[2:(n - 1)], function(p1, p2) {
-    tpr %>% 
+    tpr |> 
       transmute(
         r1 = get(p1[2]) - get(p1[1]),
         r2 = get(p2[2]) - get(p2[1])
-      ) %>% 
-      add_column(rat = str_c(p1, p2, sep = "-", collapse = ":")) %>% 
+      ) |> 
+      add_column(rat = str_c(p1, p2, sep = "-", collapse = ":")) |> 
       drop_na()
   })
 
   # Calculate principal components' slopes and intercepts
   eig <- map_dfr(unique(xy$rat), function(r) {
-    d <- xy %>% filter(rat == r) %>% select(r1, r2)
+    d <- xy |> filter(rat == r) |> select(r1, r2)
     eigen_vec <- prcomp(d)$rotation
     slopes <- eigen_vec[2, ] / eigen_vec[1, ]
     tibble(
       intercpt = mean(d$r2),
       slp1 = slopes[1],
       slp2 = slopes[2]
-    ) %>% 
+    ) |> 
       add_column(rat = r)
   })
   
