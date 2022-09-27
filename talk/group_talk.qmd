@@ -5,11 +5,13 @@ cache: true
 fig-align: center
 width: 1280
 height: 720
+margin: 0.05
 self-contained: false
 format:
   revealjs:
     theme: white
-    footer: Data Analysis Group
+    footer: Pains of patient-based data
+    logo: images/dag_logo.jpg
 ---
 
 ```{r setup, include=FALSE}
@@ -20,6 +22,21 @@ library(ape)
 library(UpSetR)
 ```
 
+
+## People
+
+::: {.absolute top="15%" left="25%" width="20%"}
+![James Chalmers](images/james-chalmers.jpg){style="border-radius: 5%; border: 8px solid #e3f4fc; text-align: center"}
+:::
+
+::: {.absolute top="15%" right="25%" width="20%"}
+![Merete Long](images/merete-long_0.jpg){style="border-radius: 5%; border: 8px solid #e3f4fc; text-align: center"}
+:::
+
+::: {.absolute bottom="15%" left="26%"}
+[Molecular and Clinical Medicine, School of Medicine]{style="font-size: 0.7em;"}
+:::
+
 ## Neutrophils
 
 ::: {layout="[[50, 50]]"}
@@ -28,6 +45,7 @@ library(UpSetR)
 -   type of white blood cell
 -   part of innate immune system
 -   first line of defence against pathogens
+-   abundant, 10^11^ are produced daily 
 :::
 
 ## Motivation
@@ -58,8 +76,8 @@ Let's do proteomics!
 
 Spectronaut output, `r targets::tar_read(spectronaut_nrow) |> prettyNum(big.mark = ",")` rows
 
-::: {style="font-size: 0.9em;"}
-```{r head}
+::: {style="font-size: 0.9em"}
+```{r}
 options(width = 150)
 tar_read(spectronaut_head) |> 
   print(n = 100)
@@ -76,7 +94,7 @@ tar_read(spectronaut_head) |>
 
 ## Gaps in data
 
-```{r fig_batch_heat}
+```{r}
 #| fig-align: center
 #| fig-width: 12
 #| fig-height: 7
@@ -86,7 +104,7 @@ tar_read(fig_participant_1_29)
 ## Batch effects!
 
 ::: {.absolute top="15%" left="25%" width="60%"}
-```{r fig_batch_count}
+```{r}
 #| fig-width: 6
 tar_read(fig_counts_batch)
 ```
@@ -95,7 +113,7 @@ tar_read(fig_counts_batch)
 ## Participants
 
 ::: {style="height: 80%; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto;"}
-```{r participants}
+```{r}
 tar_read(participants) |> 
   mutate(No = row_number(), .before = 1) |> 
   gt() |> 
@@ -109,7 +127,7 @@ tar_read(participants) |>
 ## Participants
 
 ::: {.absolute top="25%" left="10%" width="80%"}
-```{r fig_participant_stats}
+```{r}
 #| fig-width: 11
 #| fig-height: 3.5
 tar_read(fig_participat_stats) 
@@ -119,28 +137,28 @@ tar_read(fig_participat_stats)
 ## Protein detection
 
 ::: {.absolute top="15%" left="10%" width="90%"}
-```{r detection}
+```{r}
 tar_read(fig_detection)
 ```
 :::
 
 ## Clustering
 
-```{r fig_clustering}
-#| fig-height: 7
+```{r}
+#| fig-height: 9
 #| fig-align: center
-tar_read(fig_clustering_circular)
+tar_read(fig_clustering_circular) 
 ```
 
 ## PCA and UMAP
 
 ::: {layout="[[-0.2], [1, 1]]"}
-```{r pca}
+```{r}
 #| fig-width: 7
 tar_read(fig_pca)
 ```
 
-```{r umap}
+```{r}
 #| fig-width: 7
 tar_read(fig_umap)
 ```
@@ -153,7 +171,7 @@ Brensocatib is an orally delivered selective, competitive, and reversible inhibi
 . . .
 
 ::: {.absolute top="20%" left="30%" width="60%"}
-```{r fig_dpp1}
+```{r}
 #| fig-width: 5
 tar_read(fig_dpp1)
 ```
@@ -175,7 +193,7 @@ tar_read(fig_dpp1)
 
 ## Differential abundance full
 
-```{r fig_ma_full}
+```{r}
 #| fig-width: 8
 #| fig-asp: 0.9
 #| fig-align: center
@@ -185,7 +203,7 @@ tar_read(fig_ma_full)
 ## Batch effect examples
 
 ::: {.absolute top="17%" left="10%" width="90%"}
-```{r fig_batch_examples}
+```{r}
 tar_read(fig_batch_examples)
 ```
 :::
@@ -193,7 +211,7 @@ tar_read(fig_batch_examples)
 ## Gene set enrichment for batch effect
 
 ::: {layout="[[-1],[1],[-1]]"}
-```{r gse_batch5}
+```{r}
 tar_load(gse_batch5)
 map_dfr(names(gse_batch5), function(ont) {
   gse_batch5[[ont]] |> 
@@ -214,12 +232,12 @@ Batch 4 and 5 only
 `~ treatment + age_group + sex`
 
 ::: {layout="[[1.4, 1]]"}
-```{r fig_day29_4}
+```{r}
 #| fig-width: 7
 tar_read(fig_ma_day29_b4) + ggtitle("Batch 4")
 ```
 
-```{r fig_day29_5}
+```{r}
 #| fig-width: 5
 tar_read(fig_ma_day29_b5) + ggtitle("Batch 5")
 ```
@@ -228,7 +246,7 @@ tar_read(fig_ma_day29_b5) + ggtitle("Batch 5")
 ## Day 29 overlap
 
 ::: {layout="[[-1], [-1, 4, -1], [-1]]"}
-```{r day29_upset}
+```{r}
 #| fig-width: 6
 #| fig-height: 4
 upset(fromList(tar_read(ups_day29))) 
@@ -237,20 +255,27 @@ upset(fromList(tar_read(ups_day29)))
 
 ## Day 29 best guess {.smaller}
 
-```{r day29_best}
+```{r}
 tar_read(dal_day29_treatment_best) |> 
   select(-protein_names) |> 
   gt()
 ```
 
-```{r fig_day29_best}
+```{r}
 #| fig-align: center
+#| fig-height: 4
 tar_read(fig_day29_best)
 ```
 
+::: notes
+Cathepsin C (the target) is a cysteine protease, while cathepsin G is a serine protease.
+
+Azurocidin is an antimicrobial protein residing in lysosome of a neutrophil.
+:::
+
 ## Per participant DA
 
-```{r fig_participants}
+```{r}
 tar_read(fig_participant_1_29)
 ```
 
@@ -260,12 +285,12 @@ tar_read(fig_participant_1_29)
 ## log-ratio day 29 to day1
 
 ::: {layout="[[-1], [-1, 5, -1], [-1]]"}
-```{r fig_volcano_dl}
+```{r}
 tar_read(fig_volcano_dl)
 ```
 :::
 
-```{r dd_enrichment}
+```{r}
 tar_load(gse_dl)
 tb <- map_dfr(names(gse_dl), function(ont) {
   gse_dl[[ont]] |> 
@@ -280,33 +305,35 @@ tb <- map_dfr(names(gse_dl), function(ont) {
 })
 ```
 
-## Gene-set enrichment drug
+## Gene-set enrichment drug {.scrollable .smaller}
 
-::: {style="height: 80%; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto;"}
-```{r lograt_drug}
+:::: {.panel-tabset}
+
+### Drug
+
+```{r}
 tb |>
   filter(contrast == "drug") |>
   select(-contrast) |> 
   gt() |> 
   fmt_scientific(padj, decimals = 1)
 ```
-:::
 
-## Gene-set enrichment placebo
+### Placebo
 
-::: {style="height: 80%; width: fit-content; overflow-y: scroll; margin-left: auto; margin-right: auto;"}
-```{r lograt_placebo}
+```{r}
 tb |>
   filter(contrast == "placebo") |>
   select(-contrast) |> 
   gt() |> 
   fmt_scientific(padj, decimals = 1)
 ```
+
 :::
 
 ## Drug vs placebo
 
-```{r fig_volcano_dd_drug_vs_placebo}
+```{r}
 #| fig-width: 5
 #| fig-align: center
 tar_read(fig_volcano_dl_drug_vs_placebo)
@@ -314,7 +341,7 @@ tar_read(fig_volcano_dl_drug_vs_placebo)
 
 ## Drug vs placebo
 
-```{r fig_dd_drug_vs_placebo, fig.width=10, fig.height=8}
+```{r, fig.width=10, fig.height=8}
 #| fig-align: center
 tar_read(fig_dl_drug_vs_placebo) 
 ```

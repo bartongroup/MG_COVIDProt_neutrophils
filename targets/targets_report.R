@@ -9,7 +9,7 @@ targets_report <- function() {
     tar_target(png_sample_dist, plot_sample_distributions(set, x_lim = c(0, 12), x_breaks = c(0, 6, 12), text_size = 7) |> gs("sample_dist", 10, 10)),
     tar_target(png_kernels, plot_kernel_comparison(set) |> gs("kernels", 6, 3)),
     tar_target(fig_clustering, plot_clustering(set, colour_var = "batch")),
-    tar_target(fig_clustering_circular, plot_clustering_circular(set, colour_var = "batch")),
+    tar_target(fig_clustering_circular, plot_clustering_circular(set, colour_var = "batch", shape_var = "day")),
     tar_target(fig_cormat, plot_distance_matrix(set)),
     tar_target(fig_pca, plot_pca(set, colour_var = "batch", shape_var = "day")),
     tar_target(fig_umap, plot_umap(set, n_neighbours = 20, min_dist = 0.1, colour_var = "batch", shape_var = "day")),
