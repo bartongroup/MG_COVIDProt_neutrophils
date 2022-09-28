@@ -9,7 +9,7 @@ margin: 0.05
 self-contained: false
 format:
   revealjs:
-    theme: white
+    theme: [talk.scss]
     footer: Pains of patient-based data
     logo: images/dag_logo.jpg
 ---
@@ -23,6 +23,7 @@ library(UpSetR)
 ```
 
 
+
 ## People
 
 ::: {.absolute top="15%" left="25%" width="20%"}
@@ -33,29 +34,32 @@ library(UpSetR)
 ![Merete Long](images/merete-long_0.jpg){style="border-radius: 5%; border: 8px solid #e3f4fc; text-align: center"}
 :::
 
-::: {.absolute bottom="15%" left="26%"}
-[Molecular and Clinical Medicine, School of Medicine]{style="font-size: 0.7em;"}
+::: {.absolute bottom="15%" left="23%"}
+Molecular and Clinical Medicine, School of Medicine
 :::
+
 
 ## Neutrophils
 
 ::: {layout="[[50, 50]]"}
 ![](images/neutrophil.png)
 
--   type of white blood cell
--   part of innate immune system
--   first line of defence against pathogens
--   abundant, 10^11^ are produced daily 
+* type of white blood cell
+* part of innate immune system
+* first line of defence against pathogens
+* abundant, 10^11^ are produced daily 
 :::
 
 ## Motivation
 
 -   COVID casues acute respiratory distress syndrome (ARDS)
 -   Mortality in ADSR correlates with neutrophil count
--   Neutrophil elastase is believed to cause neutrophil-induced lung damage
+-   [Neutrophil elastase]{style="color: #CC2020"}[^1] is believed to cause neutrophil-induced lung damage
 -   It is activated by dipeptidyl peptidase 1 (cathepsin C)
 -   Brensocatib is a orally delivered DPP1 inhibitor
 -   The drug might help with COVID recovery
+
+[^1]: Neutrophil elastase is a protease secreted by neutrophils during inflammation, destroys bacteria and host tissue.
 
 ::: notes
 Neutrophil elastase is a protease secreted by neutrophils during inflammation, destroys bacteria and host tissue.
@@ -76,7 +80,7 @@ Let's do proteomics!
 
 Spectronaut output, `r targets::tar_read(spectronaut_nrow) |> prettyNum(big.mark = ",")` rows
 
-::: {style="font-size: 0.9em"}
+::: {style="font-size: 1.2em"}
 ```{r}
 options(width = 150)
 tar_read(spectronaut_head) |> 
@@ -179,11 +183,13 @@ tar_read(fig_dpp1)
 
 ## Differential abundance {.smaller}
 
-##### Full model
+#### Full model
 
 `~ treatment + day + batch + age_group + sex`
 
-##### Baseline
+<br>
+
+#### Baseline
 
 -   treatment = placebo
 -   day = 1
@@ -267,12 +273,6 @@ tar_read(dal_day29_treatment_best) |>
 tar_read(fig_day29_best)
 ```
 
-::: notes
-Cathepsin C (the target) is a cysteine protease, while cathepsin G is a serine protease.
-
-Azurocidin is an antimicrobial protein residing in lysosome of a neutrophil.
-:::
-
 ## Per participant DA
 
 ```{r}
@@ -341,10 +341,19 @@ tar_read(fig_volcano_dl_drug_vs_placebo)
 
 ## Drug vs placebo
 
-```{r, fig.width=10, fig.height=8}
+```{r, fig.width=9, fig.height=5}
 #| fig-align: center
 tar_read(fig_dl_drug_vs_placebo) 
 ```
+
+
+::: aside
+Cathepsin C (the target) is a cysteine protease, while cathepsin G is a serine protease.
+
+Azurocidin is an antimicrobial protein residing in lysosome of a neutrophil.
+:::
+
+
 
 ## Conclusions? {auto-animate=true}
 
@@ -377,19 +386,19 @@ Messy!
 
 ## This is what we do
 
-::::: {layout="[[-22, 54, -22], [100]]"}
+::::: {layout="[[-22, 50, -22], [100]]"}
 
 ![](images/needle.png)
 
 
 :::: {.fragment}
-::: {style="font-size: 0.5em"}
+::: {style="font-size: 0.8em"}
 Italian artist Sven Sachsalber, at *Palais de Tokyo* in Paris, searching for a needle in a haystack, hidden there by the museum's director (November 2014).
 :::
 ::::
 
 :::: {.fragment}
-::: {style="font-size: 0.5em"}
+::: {style="font-size: 0.8em"}
 He found the needle after 18 hours.
 :::
 ::::
