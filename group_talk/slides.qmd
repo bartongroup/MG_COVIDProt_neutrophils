@@ -9,7 +9,7 @@ margin: 0.05
 self-contained: false
 format:
   revealjs:
-    theme: [talk.scss]
+    theme: [white, css/talk.scss]
     footer: Pains of patient-based data
     logo: images/dag_logo.jpg
 ---
@@ -80,7 +80,7 @@ Let's do proteomics!
 
 Spectronaut output, `r targets::tar_read(spectronaut_nrow) |> prettyNum(big.mark = ",")` rows
 
-::: {style="font-size: 1.2em"}
+::: {style="font-size: 25px"}
 ```{r}
 options(width = 150)
 tar_read(spectronaut_head) |> 
