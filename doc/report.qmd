@@ -1,46 +1,39 @@
 ---
 title: "COVID proteomics: neutrophils"
-author: "Marek Gierlinski"
-date: "`r format(Sys.time(), '%d %B, %Y')`"
-output:
-  html_document:
+author:
+  - name: Marek Gierlinski
+    affiliations: Data Analysis Group
+    note: "Creator of this report"
+  - name: Merete Long
+    affiliation: Molecular and Clinical Medicine, School of Medicine
+  - name: James Chalmers
+    affiliation: Molecular and Clinical Medicine, School of Medicine
+date: today
+date-format: "D MMMM YYYY"
+execute:
+  echo: false
+  cache: true
+  warning: false
+format:
+  html:
     theme:
-      bootswatch: journal
-      primary: "#2fa4e7"
-editor_options: 
-  markdown: 
-    wrap: 72
+      - journal
+      - report.scss
+    toc: true
+editor: visual
+self-contained: true
 ---
 
-```{css css_options, echo=FALSE}
-pre code, pre, code {
-  white-space: pre !important;
-  overflow-x: scroll_box() ! important; 
-  word-break: keep-all !important;
-  word-wrap: initial !important;
-}
-```
-
-```{r options, echo=FALSE}
-knitr::opts_chunk$set(
-  warning = FALSE,
-  message = FALSE,
-  echo = FALSE,
-  cache = TRUE,
-  autodep = TRUE
-)
-options(
-  width = 100,
-  knitr.table.format = "html"
-)
-```
 
 ```{r libraries, cache=FALSE}
-library(targets)
-library(tidyverse)
-library(flextable)
-library(UpSetR)
-library(DT)
+suppressPackageStartupMessages({
+  library(targets)
+  library(tidyverse)
+  library(flextable)
+  library(gt)
+  library(UpSetR)
+  library(DT)
+})
 ```
 
 ```{r functions}
@@ -51,13 +44,11 @@ myDT <- function(d) {
 N <- function(n) prettyNum(n, big.mark = ",")
 ```
 
-Collaborators: Merete Long, James Chalmers
 
-#  {.tabset}
 
-## Proposal
+# Proposal
 
-### STOP-COVID19: SUPERIORITY TRIAL OF PROTEASE INHIBITION IN COVID-19
+## STOP-COVID19: SUPERIORITY TRIAL OF PROTEASE INHIBITION IN COVID-19
 
 Multi-centre prospective, randomized placebo-controlled trial in
 patients presenting to hospital with PCR confirmed COVID-19 (SARS-CoV-2
@@ -165,9 +156,9 @@ stages. The first stage would include:
 
 -   providing a simple interactive tool to look at the above results
 
-## Data
+# Data
 
-### Spectronaut
+## Spectronaut
 
 Raw data were analysed with
 [Spectronaut](https://biognosys.com/software/spectronaut). I have
@@ -179,9 +170,9 @@ file (I got it first), but then switched to the original file.
 The file I used is a protein quantification file and it contains the
 following columns:
 
-```{r spectronaut_columns}
+```{r}
 tar_read(spectronaut_columns) |> 
-  flextable()
+  gt()
 ```
 
 We need file name (corresponding to the sample name), protein
@@ -189,66 +180,94 @@ accessions, descriptions and quantity - raw protein intensity. All
 q-values are small (the largest q-value is
 `r signif(tar_read(max_qvalue), 2)`).
 
-### Normalisation
+## Normalisation
 
 Raw data are normalised to the median in each sample.
 
-## Experiment
+# Experiment
 
-### Batches
+## Batches
 
 We have `r tar_read(n_samples)` samples. There are two treatments (drug
 and placebo), several time points and batches. Here is a summary of the
 sample numbers:
 
-```{r fig_counts, fig.width=6, fig.height=4}
+```{r}
+#| fig-width: 6
+#| fig-height: 4
 tar_read(fig_counts_batch) 
 ```
 
 We see that batch 1 and 2 are very small (we are going to ignore these data when taking batch effects into account) and days 4 and 15 have little data available. More details in tabular form:
 
-#### Treatment and day
+### Treatment and day
 
-```{r meta_day}
+```{r}
 tar_read(metadata) |>
   group_by(treatment, day) |> 
-  tally() |> 
-  flextable() |> 
-  theme_box() |> 
-  merge_v(j = 1)
+  tally() |>
+  ungroup() |> 
+  pivot_wider(id_cols = treatment, names_from = day, values_from = n) |> 
+  gt() |> 
+  tab_spanner(
+    label = "Day",
+    columns = c(-treatment) 
+  ) |> 
+  cols_width(-treatment ~ px(50)) |> 
+  tab_options(column_labels.font.weight = "bold")
 ```
 
-#### Batch and day
+### Batch and day
 
 ```{r meta_batch}
 tar_read(metadata) |>
   group_by(batch, day) |> 
   tally() |> 
-  flextable() |> 
-  theme_box() |> 
-  merge_v(j = 1)
+  ungroup() |> 
+  mutate(
+    n = as.character(n)
+  ) |> 
+  pivot_wider(id_cols = batch, names_from = day, values_from = n, values_fill = "-", names_sort = TRUE) |> 
+  gt() |> 
+  tab_spanner(
+    label = "Day",
+    columns = c(-batch) 
+  ) |> 
+  cols_width(-batch ~ px(50)) |> 
+  tab_options(column_labels.font.weight = "bold")
 ```
 
-### MS runs
+## MS runs
 
-```{r fig_counts_run, fig.width=6, fig.height=4}
+```{r}
+#| fig-width: 6
+#| fig-height: 4
 tar_read(fig_counts_run) 
 ```
 
 MS runs are subsets of batches:
 
-```{r meta_batch_run}
+```{r}
 tar_read(metadata) |>
   group_by(batch, run_index) |> 
   tally() |> 
-  flextable() |> 
-  theme_box() |> 
-  merge_v(j = 1)
+  ungroup() |> 
+  mutate(
+    n = as.character(n)
+  ) |> 
+  pivot_wider(id_cols = batch, names_from = run_index, values_from = n, values_fill = "-", names_sort = FALSE) |> 
+  gt() |> 
+  tab_spanner(
+    label = "Run index",
+    columns = c(-batch) 
+  ) |> 
+  cols_width(-batch ~ px(50)) |> 
+  tab_options(column_labels.font.weight = "bold")
 ```
 
 
 
-### Full table of the experimental design
+## Full table of the experimental design
 
 Please note that sample naming in this report (`sample`) differs from
 the file/sample naming in the Spectronaut file (`raw_sample`). New
@@ -259,29 +278,32 @@ sample name consists of the following:
 -   day (01, 04, 08, 15, 29)
 -   'replicate' number (1 .. n, within given treatment/batch/day)
 
-```{r meta}
+```{r}
 m <- tar_read(metadata) |> 
   select(sample, raw_sample, batch, run_index, participant_id, treatment, day, age, sex, completion)
-DT::datatable(m) |>  formatStyle(columns = colnames(m), fontSize = '80%')
+DT::datatable(m) |>
+  DT::formatStyle(columns = colnames(m), fontSize = '80%')
 ```
 
-## Participants
+# Participants
 
-### Table of participants
+## Table of participants
 
-```{r participants}
+```{r}
 DT::datatable(tar_read(participants)) 
 ```
 
-### Distribution of attributes
+## Distribution of attributes
 
-```{r fig_participant_stats, fig.width=11, fig.height=3.5}
+```{r}
+#| fig-width: 11
+#| fig-height: 3.5
 tar_read(fig_participat_stats) 
 ```
 
-## Overview
+# Overview
 
-### Protein detection
+## Protein detection
 
 Not all proteins are detected across all `r tar_read(n_samples)` samples. Figures below show
 
@@ -289,66 +311,73 @@ Not all proteins are detected across all `r tar_read(n_samples)` samples. Figure
  - how many proteins are detected in each sample, starting from the highest number
  
 
-```{r detection, fig.width=10, fig.height=4}
+```{r}
+#| fig-width: 10
+#| fig-height: 4
 tar_read(fig_detection)
 ```
 
 There is a dramatic drop at the end of the right panel, which is due to one sample  with very few proteins detected. This sample is removed from further analysis. Here is information about the bad sample:
 
 
-```{r bad_samples}
-m <- tar_read(metadata) |> 
+```{r}
+tar_read(metadata) |> 
   filter(bad) |> 
-  select(sample, raw_sample, batch, participant_id, treatment, day, age, sex, completion)
-flextable(m) |> 
-  width(j = 1:2, width = 1.3)
+  select(sample, raw_sample, batch, participant_id, treatment, day, age, sex, completion) |> 
+  gt()
 ```
 
-### Abundance distribution
+## Abundance distribution
 
 The plot shows distribution of raw and normalised protein abundance:
 
-```{r fig_abu_dist, out.width="60%"}
-knitr::include_graphics("../fig/kernels.png")
-```
+![](../fig/kernels.png)
 
-### Clustering
+## Clustering
 
 OK, this is a monstrous figure, but allows to see all the samples clustered together. Colours of sample names represent batches. We can see that batch effects dominate this experiment. Hierarchical clustering was calculated based on logarithm of normalised intensities, with Euclidean distance, using complete linkage method.
 
-```{r fig_clustering, fig.width=8, fig.height=40}
-tar_read(fig_clustering)
+```{r}
+#| fig-width: 8
+#| fig-height: 12
+tar_read(fig_clustering_circular)
 ```
 
-### Correlation matrix
+## Correlation matrix
 
 This figure shows Pearson's correlation coefficient for all pairs of samples. It is a bit messy. The bad sample is clearly visible as a dark row and column. The figure is based on logarithm of normalised intensities.
 
-```{r cormat, fig.width=10, fig.height=10}
+```{r}
+#| fig-width: 10
+#| fig-height: 10
 tar_read(fig_cormat) 
 ```
 
-### PCA
+## PCA
 
 The figure is based on logarithm of normalised intensities. The bad replicate stands out.
 
-```{r pca, fig.width=8, fig.height=8}
+```{r}
+#| fig-width: 8
+#| fig-height: 8
 tar_read(fig_pca)
 ```
 
-### UMAP
+## UMAP
 
 UMAP is dimensionality reduction method, an alternative to PCA. It retains structure of high-dimensional data when embedded in two dimensions.
 
-```{r umap, fig.width=8, fig.height=8}
+```{r}
+#| fig-width: 8
+#| fig-height: 8
 tar_read(fig_umap) 
 ```
 
-## Differential abundance
+# Differential abundance
 
-### Description
+## Description
 
-#### From limma R vignette
+### From limma R vignette
 
 For differential expression we use `limma`. It used an empirical Bayes
 method to squeeze the peptide-wise residual variances towards a common
@@ -361,7 +390,7 @@ differential expression.
 For more information see [Ritchie et al.
 2015](https://academic.oup.com/nar/article/43/7/e47/2414268).
 
-#### In simpler words
+### In simpler words
 
 `limma` uses a t-test, which is moderated by borrowing data across all
 peptides. A global variance model is built and moderation squeezes
@@ -369,7 +398,7 @@ variances towards this global trend. Extreme variances (either large or
 small) become less extreme, which makes the test more robust to random
 outliers.
 
-### Full model
+## Full model
 
 First, we analyse all data using a 'full' model taking into account all potential effects:
 
@@ -387,7 +416,9 @@ In this model, and models below, bad replicate and data from batch 1 and 2 are i
 
 The figure below shows MA plots for each of the coefficients. Each panel corresponds to one value of one coefficient, showing differential abundance with respect to the baseline.
 
-```{r fig_ma_full, fig.width=10, fig.height=10}
+```{r}
+#| fig-width: 10
+#| fig-height: 10
 tar_read(fig_ma_full) 
 ```
 
@@ -396,11 +427,13 @@ Black points indicate proteins with significant -- false discovery rate (FDR) < 
 The biggest effect comes from batch differences and time points. The drug effect is week, though it shows a few differentially abundant (DA) proteins, these might be flukes. We are going to look at drug effect in details later. Similarly, other factors (age and sex) have very week effect on DA.
 
 
-### Batch effect
+## Batch effect
 
 Next, we look at the difference between batches 3, 4 and 5. For this, a simple model with only batch as effect was created and three contrasts calculated:
 
-```{r fig_da_batch, fig.width=8, fig.height=3}
+```{r}
+#| fig-width: 8
+#| fig-height: 3
 tar_read(fig_ma_batch)
 ```
 
@@ -408,15 +441,17 @@ Somehow batches 4 and 5 are the most different, but statistical significance can
 
 A couple of examples to demonstrate the strength of batch effect. MS run indeces are also included.
 
-```{r fig_batch_examples, fig.width=9, fig.height=5}
+```{r}
+#| fig-width: 9
+#| fig-height: 5
 tar_read(fig_batch_examples)
 ```
 
 Trypsin is an extreme example where batches 4 and 5 differ by almost 3 orders of magnitude.
 
-#### Gene set enrichment for batch effect
+### Gene set enrichment for batch effect
 
-```{r gse_batch5}
+```{r}
 tar_load(gse_batch5)
 map_dfr(names(gse_batch5), function(ont) {
   gse_batch5[[ont]] |> 
@@ -431,48 +466,56 @@ map_dfr(names(gse_batch5), function(ont) {
 
 
 
-### Day 1
+## Day 1
 
 We select day 1 data only and consider a model
 
 `~ treatment + batch + age_group + sex`
 
-```{r fig_ma_day1, fig.width=8, fig.height=8}
+```{r}
+#| fig-width: 8
+#| fig-height: 8
 tar_read(fig_ma_day1) 
 ```
 
 Not surprisingly there is no drug effect on day 1.
 
 
-### Day 29
+## Day 29
 
 Now the same for day 29. Note that there is no batch 3 in day 29 data.
 
-```{r fig_ma_day29, fig.width=8, fig.height=5.5}
+```{r}
+#| fig-width: 8
+#| fig-height: 5.5
 tar_read(fig_ma_day29) 
 ```
 
 Now a lot of proteins are 'significant' in drug effect, but the fold change is not any different from day 1. We need to be careful interpreting these results. Again, they are completely dominated by batch effects.
 
 
-### Day 29 and batch effects
+## Day 29 and batch effects
 
 There are two batches within day 29: batch 4 and batch 5. As demonstrated above, the batch effect is strong. Here, two data subsets are considered, for batch 4 and batch 5 separately (both for day 29). The model is 
 
 `~ treatment + age_group + sex`
 
-```{r fig_day29_4, fig.width=8, fig.height=5.5}
+```{r}
+#| fig-width: 8
+#| fig-height: 5.5
 tar_read(fig_ma_day29_b4) + ggtitle("Batch 4")
 ```
 
 
-```{r fig_day29_5, fig.width=6, fig.height=5.5}
+```{r}
+#| fig-width: 6
+#| fig-height: 5.5
 tar_read(fig_ma_day29_b5) + ggtitle("Batch 5")
 ```
 
 The next figure shows overlap for DA proteins (FDR < 0.01) for day 29: batch 4, batch 5 and both:
 
-```{r day29_upset}
+```{r}
 upset(fromList(tar_read(ups_day29))) 
 ```
 
@@ -481,9 +524,7 @@ The only proteins in agreement between three selections are:
 ```{r day29_best}
 tar_read(dal_day29_treatment_best) |> 
   select(-protein_names) |> 
-  flextable() |> 
-  width(2, 2) |> 
-  width(3, 3)
+  gt()
 ```
 
 Here are abundances from these proteins:
@@ -492,16 +533,16 @@ Here are abundances from these proteins:
 tar_read(fig_day29_best)
 ```
 
-### The outlier
+## The outlier
 
 There is one persistent outlier keeping high levels of AZU1 and CTSG on day 29. It is the same participant, ID 1132, one of the youngest in the cohort:
 
-```{r part1132}
+```{r}
 tar_read(metadata) |> 
   filter(participant_id == 1132) |> 
   select(participant_id, age, sex, time_from_symptoms, completion) |> 
   distinct() |> 
-  flextable()
+  gt()
 ```
 
 These are the same five proteins for this participant 1132:
@@ -511,12 +552,14 @@ tar_read(fig_day29_best_part1132)
 ```
 
 
-## Per participant DA
+# Per participant DA
 
 
 Protein measurements at different time points are not independent, as they come from the same individuals. The plot below shows which participants gave samples at which days:
 
-```{r fig_participants, fig.width=10, fig.height=5}
+```{r}
+#| fig-width: 10
+#| fig-height: 5
 tar_read(fig_participant_1_29)
 ```
 
@@ -524,7 +567,7 @@ Black lines indicate participants delivering samples both on day 1 and 29. We ca
 
 This should give us differential abundance in time (days 1 and 29), corrected for interdependence (participants).
 
-```{r dd_enrichment}
+```{r}
 tar_load(gse_dd)
 tb <- map_dfr(names(gse_dd), function(ont) {
   gse_dd[[ont]] |> 
@@ -536,45 +579,51 @@ tb <- map_dfr(names(gse_dd), function(ont) {
 })
 ```
 
-### Volcano plots
+## Volcano plots
 
-```{r fig_volcano_dl, fig.width=7, fig.height=3}
+```{r}
+#| fig-width: 7
+#| fig-height: 3
 tar_read(fig_volcano_dl)
 ```
 
 
-### Placebo set enrichment
+## Placebo set enrichment
 
 
-```{r fig_dd_placebo, fig.width=4, fig.height=3}
+```{r}
 DT::datatable(tb |> filter(contrast == "placebo") |> select(-contrast))
 ```
 
-### Drug set_enrichment
+## Drug set_enrichment
 
 
-```{r fig_dd_drug, fig.width=4, fig.height=3}
+```{r}
 DT::datatable(tb |> filter(contrast == "drug") |> select(-contrast))
 ```
 
-### Drug vs placebo
+## Drug vs placebo
 
 We can compare a day 1-to-29 change between drug and placebo.
 
-```{r fig_volcano_dd_drug_vs_placebo, fig.width=8, fig.height=5.5}
+```{r}
+#| fig-width: 8
+#| fig-height: 5.5
 tar_read(fig_volcano_dl_drug_vs_placebo)
 ```
 
 Here are the significant proteins:
 
-```{r dd_drug_vs_placebo}
+```{r}
 tar_load(dal_dl_drug_vs_placebo_proteins)
 DT::datatable(dal_dl_drug_vs_placebo_proteins |> select(-protein_names)) 
 ```
 
 
 
-```{r fig_dd_drug_vs_placebo, fig.width=10, fig.height=8}
+```{r}
+#| fig-width: 10
+#| fig-height: 8
 tar_read(fig_dl_drug_vs_placebo) 
 ```
 
@@ -587,19 +636,17 @@ Here we use fold changes from day 29 selection, for treatment and age contrasts 
 
 The figure below shows volcano plots for various contrasts and functional terms, with term-annotated proteins highlighted.
 
-```{r, out.width="100%"}
-knitr::include_graphics("../fig/gse_examples.png") 
-```
+![](../fig/gse_examples.png)
 
 Below is the full result of gene-set-enrichment procedure (excluding batch effects). The FDR level was set to 0.05. NES stands for normalised effect size and tells you how far the group of proteins annotated with this term is skewed in logFC. Small and large NES means proteins are predominantly down- or up-regulated, respectively. The last column contains up to 10 top most changing genes (in the same direction as NES).
 
-```{r gse_results}
+```{r}
 tar_read(gse_da_day29_sig) |> 
   mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG")) |> 
   DT::datatable()
 ```
 
-## Resources
+# Resources
 
 -   [Interactive data explorer](https://shiny.compbio.dundee.ac.uk/private/marek_covid_prot_neutrophils/da_day29)
 -   [Download DE results]()
@@ -609,3 +656,5 @@ tar_read(gse_da_day29_sig) |>
 ```{r session_info}
 sessionInfo()
 ```
+
+
