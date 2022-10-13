@@ -4,9 +4,8 @@ download_uniprot_mapping <- function(uri) {
     select(uniprot, gene_name = gid)
 }
 
-
-read_spectronaut_long_data <- function(data_file, info_file, uni_gene, bad_samples = BAD_SAMPLES) {
-  meta <- readxl::read_excel(info_file, na = "n/a") |> 
+read_covid_metadata <- function(metadata_file, bad_samples) {
+  readxl::read_excel(metadata_file, na = "n/a") |> 
     set_names(c(
       "batch",
       "run_index",
@@ -43,22 +42,7 @@ read_spectronaut_long_data <- function(data_file, info_file, uni_gene, bad_sampl
     unite(treat_day, c(treatment, day), sep = "_", remove = FALSE) |> 
     group_by(treatment, day) |> 
     mutate(trep = row_number()) |> 
-    ungroup()
-
-  raw <- read_tsv(data_file, show_col_types = FALSE) |> 
-    rename_with(.fn = ~str_remove(., "^R.|^PG.")) |> 
-    janitor::clean_names() |> 
-    rename(
-      raw_sample = file_name
-    ) |> 
-    filter(raw_sample %in% meta$raw_sample)
-  
-  samrep <- raw |> 
-    select(raw_sample, replicate) |> 
-    distinct()
-  
-  metadata <- meta |> 
-    left_join(samrep, by = "raw_sample") |>
+    ungroup() |> 
     mutate(
       s1 = recode(treatment, "drug" = "D", "placebo" = "P"),
       s2 = as.character(batch),
@@ -74,6 +58,27 @@ read_spectronaut_long_data <- function(data_file, info_file, uni_gene, bad_sampl
       run_index = fct_relevel(run_index, "278"),
       bad = sample %in% bad_samples
     )
+}
+
+read_raw_file <- function(data_file) {
+  read_tsv(data_file, show_col_types = FALSE) |> 
+    rename_with(.fn = ~str_remove(., "^R.|^PG.")) |> 
+    janitor::clean_names() |> 
+    rename(
+      raw_sample = file_name
+    ) 
+}
+
+read_spectronaut_long_data <- function(data_file, meta, uni_gene, bad_samples = BAD_SAMPLES) {
+  raw <- read_raw_file(data_file) |> 
+    filter(raw_sample %in% meta$raw_sample)
+  
+  samrep <- raw |> 
+    select(raw_sample, replicate) |> 
+    distinct()
+  
+  metadata <- meta |> 
+    left_join(samrep, by = "raw_sample")
   
   info <- raw |> 
     select(protein_accessions, protein_descriptions, protein_names) |> 

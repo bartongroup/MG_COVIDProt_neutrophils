@@ -6,12 +6,12 @@ ENSEMBL_VERSION <- "106"
 UNIPROT_MAPPING_FILE <- "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/HUMAN_9606_idmapping.dat.gz"
 
 SPECTRONAUT_FILE <-  "data/20211103_115953_Protein Quant (Normal).tsv"
-METADATA_FILE <- "info/20211103_115953_Identifications_STOP-COVID_proteomics_21.4.22.xlsx"
+COVID_METADATA_FILE <- "info/20211103_115953_Identifications_STOP-COVID_proteomics_21.4.22.xlsx"
 
 MIN_PEPTIDES <- 3
 FDR_LIMIT <- 0.01
 
-BAD_SAMPLES <- c("D5_01-45")
+COVID_BAD_SAMPLES <- c("D5_01-45")
 
 make_metadata_ <- function(s_file) {
   read_tsv(s_file, show_col_types = FALSE) |> 
