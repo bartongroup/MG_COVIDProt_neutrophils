@@ -21,7 +21,7 @@ read_covid_metadata <- function(metadata_file, bad_samples) {
       "days_of_treatment",
       "on_drug"
     )) |> 
-    mutate(raw_sample = str_remove(raw_file_name, ".raw")) |> 
+    mutate(data_col = str_remove(raw_file_name, ".raw")) |> 
     select(-raw_file_name) |> 
     mutate(
       treatment = recode(treatment, "Brensocatib 25mg once daily" = "drug", "Placebo 25mg once daily" = "placebo"),
@@ -65,52 +65,55 @@ read_raw_file <- function(data_file) {
     rename_with(.fn = ~str_remove(., "^R.|^PG.")) |> 
     janitor::clean_names() |> 
     rename(
-      raw_sample = file_name
+      data_col = file_name
     ) 
 }
 
-read_spectronaut_long_data <- function(data_file, meta, uni_gene, bad_samples = BAD_SAMPLES) {
-  raw <- read_raw_file(data_file) |> 
-    filter(raw_sample %in% meta$raw_sample)
+read_spectronaut_long_data <- function(data_file, meta, uni_gene, contaminants) {
+  raw <- read_raw_file(data_file) |>
+    filter(data_col %in% meta$data_col)
   
-  samrep <- raw |> 
-    select(raw_sample, replicate) |> 
-    distinct()
-  
-  metadata <- meta |> 
-    left_join(samrep, by = "raw_sample")
-  
-  info <- raw |> 
-    select(protein_accessions, protein_descriptions, protein_names) |> 
-    distinct() |> 
+  info <- raw |>
+    select(protein_accessions, protein_descriptions, protein_names) |>
+    distinct() |>
     mutate(id = row_number(), .before = 1)
+  
+  # just in case, use all isoforms
+  contm <- contaminants |> 
+    str_remove("\\-\\d+$")
   
   id_prot_gene <- info |>
     select(id, uniprot = protein_accessions) |>
     separate_rows(uniprot, sep = ";") |>
-    distinct() |>
-    mutate(uniprot = str_remove(uniprot, "\\-\\d+$")) |> 
-    left_join(uni_gene, by = c("uniprot"))
+    mutate(uniprot = str_remove(uniprot, "\\-\\d+$")) |>
+    filter(!(uniprot %in% contm)) |>
+    left_join(uni_gene, by = c("uniprot")) |>
+    mutate(gene_name = if_else(is.na(gene_name), uniprot, gene_name))
+  good_ids <- unique(id_prot_gene$id)
+  
   gene_names <- id_prot_gene |>
     group_by(id) |>
     summarise(gene_names = str_c(unique(gene_name), collapse = ";"))
-  info <- info |> 
+  
+  info <- info |>
+    filter(id %in% good_ids) |>
     left_join(gene_names, by = "id")
   
-  d <- raw |> 
-    left_join(select(info, id, protein_accessions), by = "protein_accessions") |> 
-    left_join(select(metadata, raw_sample, sample), by = "raw_sample")
+  d <- raw |>
+    # rigth_join will remove contaminants
+    right_join(select(info, id, protein_accessions), by = "protein_accessions") |>
+    left_join(select(meta, data_col, sample), by = "data_col")
   
-  dat <- d |> 
-    select(id, sample, quantity) |> 
-    drop_na() |> 
+  dat <- d |>
+    select(id, sample, quantity) |>
+    drop_na() |>
     normalise_proteins()
   
-  qc <- d |> 
+  qc <- d |>
     select(id, sample, coverage, is_single_hit, qvalue)
   
   list(
-    metadata = metadata,
+    metadata = meta,
     info = info,
     id_prot_gene = id_prot_gene,
     qc = qc,
@@ -140,8 +143,8 @@ read_spectronaut_wide_data <- function(file, meta, min_pep) {
   # Coverage is a string, cannot pivot it with numerical values
   cover <- d_ren |> 
     select(c(id, contains("Coverage"))) |> 
-    pivot_longer(-id, names_to = c("raw_sample", "quantity"), names_pattern = "(.*):(.*)") |> 
-    pivot_wider(id_cols = c(id, raw_sample), names_from = quantity, values_from = value) |> 
+    pivot_longer(-id, names_to = c("data_col", "quantity"), names_pattern = "(.*):(.*)") |> 
+    pivot_wider(id_cols = c(id, data_col), names_from = quantity, values_from = value) |> 
     rename(coverage = Coverage) |> 
     mutate(coverage = str_remove_all(coverage, "%")) |> 
     mutate(coverage = str_remove(coverage, ";.+$")) |> # with multiple hits select the first
@@ -149,14 +152,14 @@ read_spectronaut_wide_data <- function(file, meta, min_pep) {
 
   full <- d_ren |> 
     select(-contains("Coverage")) |> 
-    pivot_longer(-id, names_to = c("raw_sample", "quantity"), names_pattern = "(.*):(.*)") |> 
-    pivot_wider(id_cols = c(id, raw_sample), names_from = quantity, values_from = value) |> 
+    pivot_longer(-id, names_to = c("data_col", "quantity"), names_pattern = "(.*):(.*)") |> 
+    pivot_wider(id_cols = c(id, data_col), names_from = quantity, values_from = value) |> 
     rename(abu = Quantity, abu_norm = Quantity.Normalised, unique_pep = Razor.Unique.Peptides, q_value = Qvalue, single_hit = IsSingleHit) |> 
-    left_join(cover, by = c("id", "raw_sample")) |> 
+    left_join(cover, by = c("id", "data_col")) |> 
     mutate(single_hit = as.logical(single_hit)) |> 
     mutate(abu = log10(abu), abu_norm = log10(abu_norm)) |> 
-    inner_join(select(meta, sample, raw_sample), by = "raw_sample") |> 
-    select(-raw_sample) |> 
+    inner_join(select(meta, sample, data_col), by = "data_col") |> 
+    select(-data_col) |> 
     mutate(sample = as_factor(sample)) |> 
     relocate(sample, .after = id)
   
@@ -369,5 +372,13 @@ collect_participant_stats <- function(meta) {
     select(participant_id, age, sex, time_from_symptoms, treatment, completion, days_of_treatment) |> 
     distinct() |> 
     left_join(dd, by = "participant_id")
+}
+
+
+read_contaminants <- function(fasta_file) {
+  read_lines(fasta_file) |>
+    str_subset("^>") |>
+    str_remove("\\s.+$") |>
+    str_remove(">")
 }
 

@@ -180,6 +180,10 @@ accessions, descriptions and quantity - raw protein intensity. All
 q-values are small (the largest q-value is
 `r signif(tar_read(max_qvalue), 2)`).
 
+## Contaminants
+
+The Spectronaut file does not have contaminants removed, so the [MaxQuant contaminant FASTA file](http://www.coxdocs.org/doku.php?id=maxquant:start_downloads.htm) was used to filter out contaminant proteins.
+
 ## Normalisation
 
 Raw data are normalised to the median in each sample.
@@ -203,7 +207,7 @@ We see that batch 1 and 2 are very small (we are going to ignore these data when
 ### Treatment and day
 
 ```{r}
-tar_read(metadata) |>
+tar_read(metadata_covid) |>
   group_by(treatment, day) |> 
   tally() |>
   ungroup() |> 
@@ -220,7 +224,7 @@ tar_read(metadata) |>
 ### Batch and day
 
 ```{r meta_batch}
-tar_read(metadata) |>
+tar_read(metadata_covid) |>
   group_by(batch, day) |> 
   tally() |> 
   ungroup() |> 
@@ -248,7 +252,7 @@ tar_read(fig_counts_run)
 MS runs are subsets of batches:
 
 ```{r}
-tar_read(metadata) |>
+tar_read(metadata_covid) |>
   group_by(batch, run_index) |> 
   tally() |> 
   ungroup() |> 
@@ -270,7 +274,7 @@ tar_read(metadata) |>
 ## Full table of the experimental design
 
 Please note that sample naming in this report (`sample`) differs from
-the file/sample naming in the Spectronaut file (`raw_sample`). New
+the file/sample naming in the Spectronaut file (`data_col`). New
 sample name consists of the following:
 
 -   treatment (`P` for placebo, `D` for drug)
@@ -279,8 +283,8 @@ sample name consists of the following:
 -   'replicate' number (1 .. n, within given treatment/batch/day)
 
 ```{r}
-m <- tar_read(metadata) |> 
-  select(sample, raw_sample, batch, run_index, participant_id, treatment, day, age, sex, completion)
+m <- tar_read(metadata_covid) |> 
+  select(sample, data_col, batch, run_index, participant_id, treatment, day, age, sex, completion)
 DT::datatable(m) |>
   DT::formatStyle(columns = colnames(m), fontSize = '80%')
 ```
@@ -321,9 +325,9 @@ There is a dramatic drop at the end of the right panel, which is due to one samp
 
 
 ```{r}
-tar_read(metadata) |> 
+tar_read(metadata_covid) |> 
   filter(bad) |> 
-  select(sample, raw_sample, batch, participant_id, treatment, day, age, sex, completion) |> 
+  select(sample, data_col, batch, participant_id, treatment, day, age, sex, completion) |> 
   gt()
 ```
 
@@ -538,7 +542,7 @@ tar_read(fig_day29_best)
 There is one persistent outlier keeping high levels of AZU1 and CTSG on day 29. It is the same participant, ID 1132, one of the youngest in the cohort:
 
 ```{r}
-tar_read(metadata) |> 
+tar_read(metadata_covid) |> 
   filter(participant_id == 1132) |> 
   select(participant_id, age, sex, time_from_symptoms, completion) |> 
   distinct() |> 

@@ -6,12 +6,13 @@ targets_data <- function() {
     tar_target(re_terms, fetch_reactome(mart, all_genes)),
     tar_target(kg_terms, get_kegg(species = KEGG_SPECIES, bm_genes = bm_genes)),
     tar_target(uni_gene,  download_uniprot_mapping(UNIPROT_MAPPING_FILE)),
-    tar_target(all_terms, list(go = go_terms, re = re_terms, kg = kg_terms))
+    tar_target(all_terms, list(go = go_terms, re = re_terms, kg = kg_terms)),
+    tar_target(contaminants, read_contaminants(CONTAMINANT_FILE))
   )
   
   read_data <- list(
     tar_target(metadata_covid, read_covid_metadata(COVID_METADATA_FILE, COVID_BAD_SAMPLES)),
-    tar_target(covid, read_spectronaut_long_data(SPECTRONAUT_FILE, metadata_covid, uni_gene))
+    tar_target(covid, read_spectronaut_long_data(SPECTRONAUT_FILE, metadata_covid, uni_gene, contaminants))
   )
   
   selections <- list(
