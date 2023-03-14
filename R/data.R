@@ -1,7 +1,7 @@
 download_uniprot_mapping <- function(uri) {
   read_tsv(UNIPROT_MAPPING_FILE, col_names = c("uniprot", "what", "gid"), show_col_types = FALSE) |> 
     filter(what == "Gene_Name") |> 
-    select(uniprot, gene_name = gid)
+    select(uniprot, gene_symbol = gid)
 }
 
 read_covid_metadata <- function(metadata_file, bad_samples) {
@@ -87,13 +87,13 @@ read_spectronaut_long_data <- function(data_file, meta, uni_gene, contaminants) 
     separate_rows(uniprot, sep = ";") |>
     mutate(uniprot = str_remove(uniprot, "\\-\\d+$")) |>
     filter(!(uniprot %in% contm)) |>
-    left_join(uni_gene, by = c("uniprot")) |>
-    mutate(gene_name = if_else(is.na(gene_name), uniprot, gene_name))
+    left_join(uni_gene, by = c("uniprot"), multiple = "all") |>
+    mutate(gene_symbol = if_else(is.na(gene_symbol), uniprot, gene_symbol))
   good_ids <- unique(id_prot_gene$id)
   
   gene_names <- id_prot_gene |>
     group_by(id) |>
-    summarise(gene_names = str_c(unique(gene_name), collapse = ";"))
+    summarise(gene_names = str_c(unique(gene_symbol), collapse = ";"))
   
   info <- info |>
     filter(id %in% good_ids) |>
@@ -171,8 +171,8 @@ read_spectronaut_wide_data <- function(file, meta, min_pep) {
     select(-c(unique_pep, q_value, coverage, single_hit)) |> 
     drop_na()
   id_prot_gene <- info |> 
-    select(id, gene_name = genes, uniprot = protein_accessions) |> 
-    separate_rows(c(gene_name, uniprot), sep = ";") |> 
+    select(id, gene_symbol = genes, uniprot = protein_accessions) |> 
+    separate_rows(c(gene_symbol, uniprot), sep = ";") |> 
     mutate(uniprot = str_remove(uniprot, "-\\d+$")) |>   # redundant isoforms
     distinct()
   
@@ -319,19 +319,19 @@ get_file_columns <- function(file) {
 }
 
 get_file_nrow <- function(file) {
-  read_tsv(file) |> 
+  read_tsv(file, show_col_types = FALSE) |> 
     nrow()
 }
 
 get_file_head <- function(file, n = 10) {
-  read_tsv(file, n_max = n)
+  read_tsv(file, n_max = n, show_col_types = FALSE)
 }
 
 
 add_genes <- function(res, info) {
   g <- info |> 
-    mutate(gene_name = str_remove(gene_names, ";.+$")) |> 
-    select(id, gene_name)
+    mutate(gene_symbol = str_remove(gene_names, ";.+$")) |> 
+    select(id, gene_symbol)
   res |> 
     left_join(g, by = "id")
 }

@@ -16,7 +16,7 @@ biomart_fetch_genes <- function(mart) {
       start = start_position,
       end = end_position,
       gene_id = ensembl_gene_id,
-      gene_name = external_gene_name,
+      gene_symbol = external_gene_name,
       ncbi_id = entrezgene_id,
       gc_content = percentage_gene_gc_content
     ) |>
@@ -36,7 +36,7 @@ bm_fetch_go_genes <- function(mart, gene_names, slim = FALSE) {
     values = gene_names,
     mart = mart
   ) |>
-    dplyr::rename(gene_name = external_gene_name, term_id = !!sym(id)) |>
+    dplyr::rename(gene_symbol = external_gene_name, term_id = !!sym(id)) |>
     dplyr::filter(term_id != "") |>
     tibble::as_tibble()
 }
@@ -81,7 +81,7 @@ bm_fetch_go <- function(mart, gene_names, slim = FALSE) {
   goterms <- bm_fetch_go_descriptions(mart)
   terms <- gene2go$term_id |>
     unique()
-  go2gene <- map(terms, function(trm) gene2go[gene2go$term_id == trm, ]$gene_name) |>
+  go2gene <- map(terms, function(trm) gene2go[gene2go$term_id == trm, ]$gene_symbol) |>
     set_names(terms)
 
   list(
@@ -103,7 +103,7 @@ reactome_fetch_genes <- function(mart, gene_names) {
     values = gene_names,
     mart = mart
   ) |>
-    dplyr::rename(gene_name = external_gene_name, term_id = "reactome") |>
+    dplyr::rename(gene_symbol = external_gene_name, term_id = "reactome") |>
     dplyr::filter(term_id != "") |>
     tibble::as_tibble()
 }
@@ -129,7 +129,7 @@ fetch_reactome <- function(mart, gene_names) {
     rename(term_id = reactome_id, term_name = name) |>
     filter(term_id %in% terms) |>
     distinct()
-  r2g <- map(terms, function(trm) g2r[g2r$term_id == trm, ]$gene_name) |>
+  r2g <- map(terms, function(trm) g2r[g2r$term_id == trm, ]$gene_symbol) |>
     set_names(terms)
   list(
     gene2term = g2r,

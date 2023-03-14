@@ -79,7 +79,7 @@ ggheatmap <- function(tab, order.col = TRUE, order.row = TRUE, dendro.line.size 
   if (order.row) {
     dendro_data_row <- ggdendro::dendro_data(dd.row, type = "rectangle")
     dendro_row <- axis_canvas(heat_plot, axis = "y", coord_flip = TRUE) +
-      geom_segment(data = ggdendro::segment(dendro_data_row), aes(y = -y, x = x, xend = xend, yend = -yend), size = dendro.line.size) +
+      geom_segment(data = ggdendro::segment(dendro_data_row), aes(y = -y, x = x, xend = xend, yend = -yend), linewidth = dendro.line.size) +
       coord_flip()
     final_plot <- final_plot |>
       cowplot::insert_yaxis_grob(dendro_row, grid::unit(0.2, "null"), position = "left")
@@ -88,7 +88,7 @@ ggheatmap <- function(tab, order.col = TRUE, order.row = TRUE, dendro.line.size 
   if (order.col) {
     dendro_data_col <- ggdendro::dendro_data(dd.col, type = "rectangle")
     dendro_col <- cowplot::axis_canvas(heat_plot, axis = "x") +
-      geom_segment(data = ggdendro::segment(dendro_data_col), aes(x = x, y = y, xend = xend, yend = yend), size = dendro.line.size)
+      geom_segment(data = ggdendro::segment(dendro_data_col), aes(x = x, y = y, xend = xend, yend = yend), linewidth = dendro.line.size)
     final_plot <- final_plot |>
       cowplot::insert_xaxis_grob(dendro_col, grid::unit(0.2, "null"), position = "top")
   }

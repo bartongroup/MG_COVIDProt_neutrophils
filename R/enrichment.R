@@ -1,206 +1,106 @@
-# Enrichment function
-#
-# Performs hypergeometric test.
-# Input: genes_sel and genes_all are vectors with gene IDs.
-# gene2term: data frame with columns id and term
-# gene2name: named vector to change genes ids into gene names
-# term_info: data frame with columns term and other columns with name, description and so on.
-# These additional columns will be inluded in the output.
-
-functionalEnrichment <- function(genes_all, genes_sel, term_data, gene2name = NULL,
-                                 min_count = 3, sig_limit = 0.05) {
-
-  gene2term <- term_data$gene2term
-  term_info <- term_data$terms
-
-  # select only terms represented in our gene set
-  gene2term <- gene2term |>
-    filter(gene_name %in% genes_all)
-
-  # all terms present in the selection
-  terms <- gene2term |>
-    filter(gene_name %in% genes_sel) |>
-    pull(term_id) |>
-    unique()
-
-  # number of selected genes
-  Nsel <- length(genes_sel)
-  # size of the universe
-  Nuni <- length(genes_all)
-
-  # empty line for missing terms
-  na_term <- term_info |> slice(1) |> mutate_all(~NA)
-
-  res <- map_dfr(terms, function(term) {
-    info <- term_info |>
-      filter(term_id == term)
-    # returns NAs if no term found
-    if (nrow(info) == 0) info <- na_term |> mutate(term_id = term)
-
-    # all genes with the term
-    tgenes <- gene2term |>
-      filter(term_id == term) |>
-      pull(gene_name)
-    # genes from selection with the term
-    tgenes_sel <- intersect(tgenes, genes_sel)
-
-    nuni <- length(tgenes)
-    nsel <- length(tgenes_sel)
-
-    expected <- nuni * Nsel / Nuni
-    fish <- matrix(c(nsel, nuni - nsel, Nsel - nsel, Nuni + nsel - Nsel - nuni), nrow = 2)
-    ft <- fisher.test(fish, alternative = "greater")
-    p <- as.numeric(ft$p.value)
-
-    if (!is.null(gene2name)) tgenes_sel <- gene2name[tgenes_sel] |> unname()
-
-    bind_cols(
-      info,
-      tibble(
-        tot = nuni,
-        sel = nsel,
-        expect = expected,
-        enrich = nsel / expected,
-        ids = paste(tgenes_sel, collapse = ","),
-        P = p
-      )
-    )
-  }) |>
-    mutate(P = p.adjust(P, method = "BH")) |>
-    filter(sel >= min_count & P <= sig_limit) |>
-    arrange(desc(enrich)) |>
-    mutate(enrich = round(enrich, 1), expect = round(expect, 2))
-
-  res
-}
-
-make_term_list <- function(gene2term) {
-  gene2term |>
-    arrange(term_id) |>
-    group_split(term_id) |>
-    map(function(w) w$gene_name) |>
-    set_names(unique(gene2term$term_id) |> sort())  # dodgy!
-}
-
-fgsea_run <- function(trm, res, min.size = 3) {
+fgsea_run <- function(term_data, res, min.size = 3) {
   res <- res |>
-    filter(!is.na(value) & !is.na(gene_name))
-  term_list <-  trm$gene2term |>
-    filter(gene_name %in% res$gene_name) |>
-    make_term_list()
-  ranks <-  set_names(res$value, res$gene_name)
-  fgsea::fgsea(pathways = term_list, stats = ranks, nproc = 6, minSize = min.size, eps = 0) |>
-    as_tibble() |>
-    left_join(trm$terms, by = c("pathway" = "term_id")) |>
+    filter(!is.na(value) & !is.na(feature_id))
+  ranks <-  set_names(res$value, res$id)
+  fgsea::fgsea(pathways = term_data$term2feature, stats = ranks, nproc = 6, minSize = min.size, eps = 0) |>
+    as_tibble() |> 
+    rename(term_id = pathway) |> 
+    mutate(term_name = term_data$term2name[term_id]) |> 
     arrange(NES) |>
-    select(term = pathway, term_name, pval, padj, NES, size, leading_edge = leadingEdge)
+    select(term_id, term_name, p_value = pval, fdr = padj, nes = NES, size, leading_edge = leadingEdge)
 }
 
-fgsea_cache <- function(d, terms, file, valvar = "logFC", groupvar = "contrast") {
-  if (file.exists(file)) {
-    fg <- read_rds(file)
-  } else {
-    fg <- d |>
-      mutate(value = !!sym(valvar)) |>
-      group_split(!!sym(groupvar)) |>
-      map_dfr(function(w) {
-        fgsea_run(terms, w) |>
-          mutate(!!groupvar := first(w[[groupvar]]))
-      })
-    write_rds(fg, file)
-  }
-  fg
+fgsea_groups <- function(d, term_data, feature_var, value_var, group_var) {
+  d |>
+    mutate(value = get(value_var), feature_id = get(feature_var)) |>
+    group_split(!!sym(group_var)) |>
+    map_dfr(function(w) {
+      fgsea_run(term_data, w) |>
+        mutate(!!group_var := dplyr::first(w[[group_var]]))
+    })
 }
 
-fgsea_all_terms <- function(d, all_terms, valvar = "logFC", groupvar = "contrast", prefix = NULL) {
-  nms <- names(all_terms)
-  map(nms, function(trm) {
-    cat(str_glue("  Computing fgsea for {trm}\n\n"))
-    cache_file <- ifelse(is.null(prefix), str_glue("fgsea_{trm}.rds"), str_glue("fgsea_{prefix}_{trm}.rds"))
-    cache_file <- file.path("cache", cache_file)
-    fgsea_cache(d, all_terms[[trm]], cache_file, valvar, groupvar)
+fgsea_all_terms <- function(d, terms, feature_var = "id", value_var = "logFC", group_var = "contrast") {
+  ontologies <- names(terms)
+  map(ontologies, function(ont) {
+    cat(str_glue("  Computing fgsea for {ont}\n\n"))
+    fgsea_groups(d, terms[[ont]], feature_var, value_var, group_var)
   }) |>
-    set_names(nms)
+    set_names(ontologies)
 }
 
-plot_fgsea_enrichment <- function(term, res, terms, value = "logFC") {
-  lst <- terms$term2gene[[term]]
-  rnks <- set_names(res[[value]], res$gene_name)
+plot_fgsea_enrichment <- function(term_id, res, trms, valvar = "logFC") {
+  lst <- trms$term2feature[[term_id]]
+  rnks <- set_names(res[[valvar]], res$gene_id)
   fgsea::plotEnrichment(lst, rnks)
 }
 
-select_star_fgsea <- function(se, fg, groupvar = "contrast") {
-  fg |>
-    filter(padj < 0.05) |>
-    group_split(term, !!sym(groupvar)) |>
+split_genes_fgsea <- function(se, fg, groupvar = "contrast") {
+  fg |> 
+    filter(padj < 0.05) |> 
+    group_split(term, !!sym(groupvar)) |> 
     map_dfr(function(w) {
       term <- as.character(w$term)
       gr <- as.character(w[[groupvar]])
       genes <- w$leading_edge[[1]]
-      se |>
-        filter(gene_name %in% genes & !!sym(groupvar) == gr) |>
-        add_column(term_id = term, .before = "gene_name") |>
-        add_column(NES = w$NES, .before = "gene_name")
+      se |> 
+        filter(gene_id %in% genes & !!sym(groupvar) == gr) |> 
+        mutate(term_id = term, .before = "gene_symbol")
     })
 }
 
-select_star_go <- function(se, bm_go, terms) {
-  bm_go$gene2term |>
-    filter(term_id %in% terms) |>
-    inner_join(se, by = "gene_name")
+
+gsea_de <- function(gse, res, fdr_limit = 0.01) {
+  contrasts <- unique(res$contrast) |> 
+    as.character()
+  ontologies <- names(gse)
+  
+  map_dfr(ontologies, function(ont) {
+    map_dfr(contrasts, function(ctr) {
+      res_sel <- res |> 
+        filter(contrast == ctr)
+      gse_sel <-  gse[[ont]] |> 
+        filter(contrast == ctr)
+      sig_genes <- res_sel |> 
+        filter(sig) |> 
+        pull(gene_id)
+      
+      gse_sel |> 
+        filter(fdr < fdr_limit) |> 
+        unnest(leading_edge) |> 
+        filter(leading_edge %in% sig_genes) |> 
+        rename(gene_id = leading_edge) |> 
+        left_join(res_sel, by = "gene_symbol") |> 
+        select(term_id, term_name, nes, fdr, gene_id, gene_symbol, logFC, logCPM, PValue, FDR) |> 
+        add_column(ontology = ont, .before = 1) |> 
+        add_column(contrast = ctr)
+    })
+  })
 }
 
 
-
-plot_tissue <- function(set, tis) {
-  # Human Protein Atlas tissue data
-  # https://www.proteinatlas.org/about/download/normal_tissue.tsv.zip
-  tis <- tis |> 
-    janitor::clean_names()
-  set$dat |> 
-    group_by(id) |> 
-    summarise(m = mean(abu_norm)) |>
-    add_genes(set$info) |> 
-    left_join(tis, by = "gene_name") |> 
-    filter(level %in% c("Low", "Medium", "High")) |> 
-  ggplot(aes(x = m, y = tissue)) +
-    theme_bw() +
-    geom_density_ridges() +
-    facet_wrap(~ level)
-}
-
-
-extract_term_genes <- function(all_terms, phrase) {
-  gr <- names(all_terms)
-  map(gr, function(g) {
-    terms <- all_terms[[g]]
-    terms$terms |>
-      filter(str_detect(term_name, str_glue("(?i){phrase}"))) |>
-      left_join(terms$gene2term, by = "term_id") |>
-      drop_na() |> 
-      filter(gene_name != "") |> 
-      pull(gene_name) |> 
-      unique()
-  }) |> 
-    set_names(gr)
+get_terms_str <- function(gso, query, fdr_limit = 0.05) {
+  gso |> 
+    filter(str_detect(term_name, query) & padj < fdr_limit) |>
+    pull(term_id)
 }
 
 
 get_significant_fgsea <- function(gse, da, fdr_limit = 0.05, n_top = 10) {
   map_dfr(names(gse), function(ont) {
     gse[[ont]] |> 
-      filter(padj < fdr_limit) |> 
+      filter(fdr < fdr_limit) |> 
       unnest(leading_edge) |> 
-      left_join(da, by = c("contrast", "leading_edge" = "gene_name")) |> 
-      group_by(term, term_name, pval, padj, NES, size, contrast) |> 
-      arrange(-sign(NES) * logFC) |>  
-      summarise(top_genes = leading_edge |> head(n_top = 10) |> str_c(collapse = ", ")) |>
+      mutate(leading_edge = as.integer(leading_edge)) |> 
+      left_join(da, by = c("contrast", "leading_edge" = "id")) |> 
+      group_by(term_id, term_name, p_value, fdr, nes, size, contrast) |> 
+      arrange(-sign(nes) * logFC) |>  
+      summarise(top_genes = gene_symbol |> head(n_top) |> str_c(collapse = ", ")) |>
       ungroup() |> 
       add_column(ontology = ont, .before = 1) |> 
-      mutate(across(c(pval, padj, NES), ~signif(.x, 3))) |> 
-      select(ontology, term_id = term, term_name, padj, NES, size, contrast, top_genes)
-      #mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
+      mutate(across(c(p_value, fdr, nes), ~signif(.x, 3))) |> 
+      select(ontology, term_id, term_name, fdr, nes, size, contrast, top_genes)
+    #mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
   }) |> 
-    arrange(NES)
-    
+    arrange(nes)
 }

@@ -1,8 +1,9 @@
 TAXONOMY_ID <- 9606
-KEGG_SPECIES <- "hsa"
+SPECIES <- "human"
 ENSEMBL_DATASET <- "hsapiens_gene_ensembl"
 ENSEMBL_VERSION <- "106"
 
+CHROMOSOMES <- c(1:22, "X", "Y", "MT")
 
 # Contaminant file downloaded from
 # http://lotus1.gwdg.de/mpg/mmbc/maxquant_input.nsf/7994124a4298328fc125748d0048fee2/$FILE/contaminants.fasta
@@ -37,7 +38,7 @@ make_metadata_ <- function(s_file) {
 }
 
 
-BATCH_EXAMPLES <- c(973, 4291)
+BATCH_EXAMPLES <- c(419, 4291)
 BASE_FILTER <- "completion & batch %in% c(3, 4, 5)"
 
 ENRICHMENT_EXAMPLES <- tibble::tribble(

@@ -25,13 +25,13 @@ targets_differential_abundance <- function() {
   )
   
   fgsea <- list(
-    tar_target(gse_da_day29, fgsea_all_terms(add_genes(da_day29, covid$info), all_terms, prefix = "d29")),
-    tar_target(gse_dl, fgsea_all_terms(add_genes(dl_all, covid$info), all_terms, prefix = "dd")),
-    tar_target(gse_dl_drug_vs_placebo, fgsea_all_terms(dl_drug_vs_placebo, all_terms, prefix = "dldp")),
-    tar_target(gse_batch5, fgsea_all_terms(add_genes(da_full |> filter(contrast == "batch5"), covid$info), all_terms, prefix = "batch5")),
+    tar_target(gse_da_day29, fgsea_all_terms(da_day29, gterms)),
+    tar_target(gse_dl, fgsea_all_terms(dl_all, gterms)),
+    tar_target(gse_dl_drug_vs_placebo, fgsea_all_terms(dl_drug_vs_placebo, gterms)),
+    tar_target(gse_batch5, fgsea_all_terms(add_genes(da_full |> filter(contrast == "batch5"), covid$info), gterms)),
     
     tar_target(gse_da_day29_sig, get_significant_fgsea(gse_da_day29, da_day29, fdr_limit = 0.05) |> filter(!str_detect(contrast, "batch"))),
-    tar_target(png_gse_examples, plot_volcano_enrichment(gse_da_day29_sig, da_day29, all_terms, ncol = 3) |> gs("gse_examples", 12, 25))
+    tar_target(png_gse_examples, plot_volcano_enrichment(gse_da_day29_sig, da_day29, gterms, ncol = 3) |> gs("gse_examples", 12, 25))
   )
   
   

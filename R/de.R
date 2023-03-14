@@ -121,10 +121,10 @@ de_list <- function(res, group_var, fdr = "FDR", logfc = "logFC", logfc_limit = 
 
 pull_proteins <- function(des) {
   des |>
-    select(protein, gene_name) |>
+    select(protein, gene_symbol) |>
     distinct() |>
-    arrange(gene_name) |>
-    filter(!is.na(gene_name))
+    arrange(gene_symbol) |>
+    filter(!is.na(gene_symbol))
 }
 
 make_de_genes <- function(de, fdr_limit = 0.05, logfc_limit = 1) {
@@ -138,6 +138,6 @@ make_de_table <- function(de, info) {
   de |>
     select(id, logFC, PValue, FDR) |>
     left_join(info, by = "id") |>
-    select(id, logFC, FDR, protein_accessions, gene_name) |>
+    select(id, logFC, FDR, protein_accessions, gene_symbol) |>
     mutate(across(c(logFC, FDR), ~signif(.x, 3)))
 }

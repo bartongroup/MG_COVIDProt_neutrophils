@@ -3,7 +3,7 @@
 
 get_kegg <- function(species, bm_genes) {
   bm <- bm_genes |>
-    select(gene_name, ncbi_id) |>
+    select(gene_symbol, ncbi_id) |>
     drop_na() |>
     distinct()
   lst <- KEGGREST::keggList("pathway", species)
@@ -24,7 +24,7 @@ get_kegg <- function(species, bm_genes) {
         as.integer()
       bm |>
         filter(ncbi_id %in% ncbi_ids) |>
-        pull(gene_name) |>
+        pull(gene_symbol) |>
         unique() # convert NCBI to Ensembl, warning: not one-to-one!
     }
   }) |>
@@ -32,7 +32,7 @@ get_kegg <- function(species, bm_genes) {
 
   gene2term <- map_dfr(terms$term_id, function(tid) {
     tibble(
-      gene_name = term2gene[[tid]],
+      gene_symbol = term2gene[[tid]],
       term_id = tid
     )
   })

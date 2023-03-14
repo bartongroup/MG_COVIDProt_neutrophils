@@ -23,7 +23,7 @@ genes <- read_rds("../genes.rds")
 all_terms <- read_rds("../terms.rds")
 cat("\n")
 
-all_genes <- da$gene_name |> unique()
+all_genes <- da$gene_symbol |> unique()
 contrasts <- levels(da$contrast)
 max_points <- 500
 
@@ -131,7 +131,7 @@ server <- function(input, output) {
       if (n > 0 && n <= max_points) {
         sel_genes <- tibble(id = sel) |> 
           left_join(xy_data, by = "id") |> 
-          pull(gene_name) |> 
+          pull(gene_symbol) |> 
           unique()
         fe <- sh_enrichment(all_genes, sel_genes, terms)
       } else if (n > 0) {
@@ -170,7 +170,7 @@ server <- function(input, output) {
 
   output$all_protein_table <- DT::renderDataTable({
     d <- get_xy_data() |>
-        select(id, gene_name, logFC, FDR) |> 
+        select(id, gene_symbol, logFC, FDR) |> 
         mutate(across(c(logFC, FDR), ~signif(.x, 3))) |> 
         left_join(select(set$info, id, protein_descriptions), by = "id")
     DT::datatable(d, class = 'cell-border strip hover', selection = "single", rownames = FALSE)

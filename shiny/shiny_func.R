@@ -8,11 +8,11 @@ sh_enrichment <- function(genes_all, genes_sel, term_data, gene2name = NULL,
   
   # select only terms represented in our gene set
   gene2term <- gene2term |>
-    filter(gene_name %in% genes_all)
+    filter(gene_symbol %in% genes_all)
   
   # all terms present in the selection
   terms <- gene2term |>
-    filter(gene_name %in% genes_sel) |>
+    filter(gene_symbol %in% genes_sel) |>
     pull(term_id) |>
     unique()
   
@@ -33,7 +33,7 @@ sh_enrichment <- function(genes_all, genes_sel, term_data, gene2name = NULL,
     # all genes with the term
     tgenes <- gene2term |>
       filter(term_id == term) |>
-      pull(gene_name)
+      pull(gene_symbol)
     # genes from selection with the term
     tgenes_sel <- intersect(tgenes, genes_sel)
     
@@ -98,7 +98,7 @@ sh_plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch") 
     ) +
     scale_colour_manual(values = okabe_ito_palette, name = colour_var) +
     ggbeeswarm::geom_quasirandom(width = 0.2, size = 1, alpha = 0.8) +
-    geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
+    geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), linewidth = 1, colour = "brown") +
     labs(x = NULL, y = what)
 }
 
@@ -118,14 +118,14 @@ sh_plot_volma <- function(res, point_size, point_alpha) {
 sh_plot_ma <- function(res,  point_size = 0.5, point_alpha = 0.5) {
   res |> 
     sh_plot_volma(point_size, point_alpha) +
-    geom_hline(yintercept = 0, size = 0.1, alpha = 0.5) +
+    geom_hline(yintercept = 0, linewidth = 0.1, alpha = 0.5) +
     labs(x = expression(log[10]~Intensity), y = expression(log[2]~FC))
 }
 
 sh_plot_volcano <- function(res, point_size = 0.5, point_alpha = 0.5) {
   res |> 
     sh_plot_volma(point_size, point_alpha) +
-    geom_vline(xintercept = 0, size = 0.1, alpha = 0.5) +
+    geom_vline(xintercept = 0, linewidth = 0.1, alpha = 0.5) +
     labs(x = expression(log[2]~FC), y = expression(-log[10]~P)) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.03)))
 }

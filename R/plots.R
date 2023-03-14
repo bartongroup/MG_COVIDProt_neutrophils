@@ -42,7 +42,7 @@ plot_ma <- function(res, a = "AveExpr", fc = "logFC", p = "PValue", fdr = "FDR",
       sel = get(fdr) < fdr_limit
     ) |> 
     plot_volma(group, point_size, point_alpha) +
-    geom_hline(yintercept = 0, size = 0.1, alpha = 0.5) +
+    geom_hline(yintercept = 0, linewidth = 0.1, alpha = 0.5) +
     labs(x = expression(log[10]~Intensity), y = expression(log[2]~FC))
 }
 
@@ -55,7 +55,7 @@ plot_volcano <- function(res, fc = "logFC", p = "PValue", fdr = "FDR", group = "
       sel = get(fdr) < fdr_limit
     ) |> 
     plot_volma(group, point_size, point_alpha) +
-    geom_vline(xintercept = 0, size = 0.1, alpha = 0.5) +
+    geom_vline(xintercept = 0, linewidth = 0.1, alpha = 0.5) +
     labs(x = expression(log[2]~FC), y = expression(-log[10]~P)) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.03)))
 }
@@ -197,14 +197,14 @@ plot_clustering <- function(set, text_size = 10, what = "abu_norm", dist.method 
     panel.background = ggplot2::element_blank(),
     axis.text.y = ggplot2::element_text(size = text_size, colour = labs$colour),
     axis.line.y = ggplot2::element_blank(),
-    axis.line.x = ggplot2::element_line(size = 0.5),
+    axis.line.x = ggplot2::element_line(linewidth = 0.5),
     axis.ticks.y = ggplot2::element_blank()
   )
   rm(set, tab, dendr)
   ggplot() +
     theme.d +
     coord_flip() +
-    geom_segment(data = seg, aes_(x = ~x, y = ~y, xend = ~xend, yend = ~yend)) +
+    geom_segment(data = seg, aes(x = x, y = y, xend = xend, yend = yend)) +
     scale_x_continuous(breaks = seq_along(labs$label), labels = labs$label) +
     scale_y_continuous(expand = c(0,0), limits = c(0, max(seg$y) * 1.03)) +
     scale_colour_manual(values = okabe_ito_palette) +
@@ -487,8 +487,8 @@ plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch", sha
     scale_x_discrete(drop = FALSE) +
     scale_colour_manual(values = okabe_ito_palette, name = colour_var) +
     scale_shape_discrete(name = shape_var) +
-    ggbeeswarm::geom_quasirandom(aes(colour = colvar, shape = shapevar), width = 0.2, size = point_size, alpha = 0.8, groupOnX = TRUE) +
-    geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
+    ggbeeswarm::geom_quasirandom(aes(colour = colvar, shape = shapevar), width = 0.2, size = point_size, alpha = 0.8) +
+    geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), linewidth = 1, colour = "brown") +
     facet_wrap(~ prot, labeller = label_wrap_gen(), ncol = ncol) +
     labs(x = NULL, y = what)
 }
@@ -518,7 +518,7 @@ plot_lograt_protein <- function(df, pids, ncol = NULL, colour_var = "age_group",
     geom_hline(yintercept = 0, colour = "grey50") +
     ggbeeswarm::geom_quasirandom(aes(colour = colvar, shape = shapevar), width = 0.2) +
     scale_colour_manual(values = okabe_ito_palette) +
-    geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), size = 1, colour = "brown") +
+    geom_segment(data = dm, aes(x = xi - 0.3, y = M, xend = xi + 0.3, yend = M), linewidth = 1, colour = "brown") +
     facet_wrap(~ prot, labeller = label_wrap_gen(), ncol = ncol) +
     labs(x = NULL, y = expression(log[2]~I[29]/I[1]), shape = shape_var, colour = colour_var)
 }
@@ -671,13 +671,11 @@ plot_volcano_enrichment <- function(enrich_list, res, all_terms, ncol = NULL) {
     r <- enrich_list[i, ]
     res_ctr <- res |>
       filter(contrast == r$contrast)
-    term_genes <- all_terms[[r$ontology]]$gene2term |> 
-      filter(term_id == r$term_id) |> 
-      pull(gene_name)
+    term_genes <- all_terms[[r$ontology]]$term2feature[[r$term_id]]
     res_ctr |> 
-      mutate(sel = gene_name %in% term_genes) |> 
+      mutate(sel = id %in% term_genes) |> 
       add_column(ontology = r$ontology, term_id = r$term_id) |> 
-      left_join(all_terms[[r$ontology]]$terms, by = "term_id") |> 
+      add_column(term_name = r$term_name) |> 
       mutate(group = str_glue("{contrast} | {term_id} - {term_name}"))
   }) |> 
     mutate(x = logFC, y = -log10(PValue))
@@ -691,12 +689,12 @@ plot_volcano_enrichment <- function(enrich_list, res, all_terms, ncol = NULL) {
     theme_bw() +
     theme(
       panel.grid = element_blank(),
-      strip.text = element_text(size = 12)
+      strip.text = element_text(size = 10)
     ) +
     geom_vline(xintercept = 0, colour = "brown") +
     geom_point(data = d, aes(x = x, y = y), colour = "grey80") +
     geom_point(data = d_sel, aes(x = x, y = y), colour = "black") +
-    ggrepel::geom_text_repel(data = d_lab, aes(x = x, y = y, label = gene_name), max.overlaps = 30) +
+    ggrepel::geom_text_repel(data = d_lab, aes(x = x, y = y, label = gene_symbol), max.overlaps = 30) +
     facet_wrap(~ group, labeller = label_wrap_gen(), ncol = ncol) +
     labs(x = "log2 FC", y = expression(-log[10]~P)) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.03)))
