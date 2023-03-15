@@ -8,9 +8,11 @@ broom
 biomaRt
 ggbeeswarm
 ggrepel
+ggridges
 viridis
 limma
 qs
 ape
 ggtree
 fenr
+preprocessCore

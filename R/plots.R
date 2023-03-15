@@ -170,7 +170,7 @@ plot_kernels <- function(set, what = "abu_norm", xlab = "Normalised abundance") 
 plot_kernel_comparison <- function(set) {
   g1 <- plot_kernels(set, "abu", "Abundance")
   g2 <- plot_kernels(set, "abu_norm", "Normalised abundance")
-  cowplot::plot_grid(g1, g2, nrow = 1)
+  cowplot::plot_grid(g1, g2, nrow = 1, labels = c("A", "B"))
 }
 
 plot_clustering <- function(set, text_size = 10, what = "abu_norm", dist.method = "euclidean",
@@ -260,7 +260,8 @@ plot_distance_matrix <- function(set, what = "abu_norm", text_size = 10) {
     viridis::scale_fill_viridis(option = "cividis") +
     theme(
       axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = text_size),
-      axis.text.y = element_text(size = text_size)
+      axis.text.y = element_text(size = text_size),
+      legend.position = "top"
     ) +
     labs(x = NULL, y = NULL, fill = "Correlation")
 }
@@ -363,7 +364,7 @@ plot_detection <- function(set) {
   g1 <- plotcurve(dp) + labs(x = "Proteins", y = "Detected in that many samples")
   g2 <- plotcurve(ds) + labs(x = "Samples", y = "Contains that many proteins")
 
-  cowplot::plot_grid(g1, g2, align = "h")
+  cowplot::plot_grid(g1, g2, align = "h", labels = c("A", "B"))
 }
 
 plot_sample_detection <- function(set) {
@@ -494,7 +495,7 @@ plot_protein <- function(set, pids, what = "abu_norm", colour_var = "batch", sha
 }
 
 
-plot_lograt_protein <- function(df, pids, ncol = NULL, colour_var = "age_group", shape_var = "sex", filt = "completion") {
+plot_lograt_protein <- function(df, pids, ncol = NULL, what = "logFC", colour_var = "age_group", shape_var = "sex", filt = "completion") {
   info <- df$info |> 
     filter(id %in% pids) |> 
     mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) |> 
@@ -503,14 +504,15 @@ plot_lograt_protein <- function(df, pids, ncol = NULL, colour_var = "age_group",
     filter(id %in% pids) |> 
     left_join(df$metadata, by = "participant_id") |> 
     filter(!bad & !!rlang::parse_expr(filt)) |> 
+    mutate(val = get(what)) |> 
     rename(colvar = !!colour_var, shapevar = !!shape_var) |> 
     left_join(info, by = "id") |> 
     mutate(x = as_factor(treatment), xi = as.integer(x))
   dm <- d |> 
     group_by(id, prot, xi) |> 
-    summarise(M = mean(logFC))
+    summarise(M = mean(val))
   rm(df)
-  ggplot(d, aes(x = x, y = logFC)) +
+  ggplot(d, aes(x = x, y = val)) +
     theme_bw() +
     theme(
       panel.grid = element_blank()
@@ -556,8 +558,8 @@ plot_participant_1_29 <- function(meta) {
     theme_bw() +
     theme(
       panel.grid = element_blank(),
-      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)
-      #legend.position = "none"
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+      legend.position = "bottom"
     ) +
     geom_line() +
     geom_point(size = 3, shape = 21) +
@@ -695,7 +697,7 @@ plot_volcano_enrichment <- function(enrich_list, res, all_terms, ncol = NULL) {
     geom_point(data = d, aes(x = x, y = y), colour = "grey80") +
     geom_point(data = d_sel, aes(x = x, y = y), colour = "black") +
     ggrepel::geom_text_repel(data = d_lab, aes(x = x, y = y, label = gene_symbol), max.overlaps = 30) +
-    facet_wrap(~ group, labeller = label_wrap_gen(), ncol = ncol) +
+    facet_wrap(~ group, labeller = label_wrap_gen(), ncol = ncol, scales = "free_y") +
     labs(x = "log2 FC", y = expression(-log[10]~P)) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.03)))
 }
@@ -721,3 +723,38 @@ plot_batch_dependence <- function(meta, coef = "age_group", filt = "TRUE") {
     scale_y_continuous(expand = expansion(mult = c(0, 0.03))) +
     labs(x = coef, y = "Count")
 }
+
+plot_sample_ridges <- function(st, what = "abu_tot", name_var = "sample", fill_var = "treatment", scale = 3, bandwidth = 0.1) {
+  env <- new.env(parent = globalenv())
+  env$fill_var <- fill_var
+  env$scale <- scale
+  env$what <- what
+  env$name_var <- name_var
+  env$bandwidth <- bandwidth
+  
+  levs <- st$dat |>
+    rename(gr := !!name_var) |> 
+    group_by(gr) |>
+    summarise(m = median(get(what))) |>
+    arrange(m) |>
+    pull(gr) 
+  
+  env$d <- st$dat |>
+    left_join(st$metadata, name_var) |>
+    mutate(gr = factor(get(name_var), levels = levs)) |> 
+    mutate(val = get(what), fil = get(fill_var)) |> 
+    select(gr, val, fil)
+  
+  with(env, {
+    d |> 
+      ggplot(aes(x = val, y = gr, fill = fil)) +
+      theme_bw() +
+      theme(panel.grid = element_blank()) +
+      geom_density_ridges(scale = scale, bandwidth = bandwidth) +
+      geom_vline(xintercept = 0) +
+      scale_fill_manual(values = okabe_ito_palette) +
+      labs(x = what, y = name_var, fill = fill_var)    
+  })
+
+}
+

@@ -246,14 +246,14 @@ tar_read(fig_participat_stats)
 
 ## Protein detection
 
-Not all proteins are detected across all `r tar_read(n_samples)` samples. Figures below show
+Not all proteins are detected across all `r tar_read(n_samples)` samples. @fig-detection shows
 
 -   in how many samples each protein was detected, starting from the highest number
 -   how many proteins are detected in each sample, starting from the highest number
 
 ```{r}
 #| label: fig-detection
-#| fig-cap: Protein detection count as a function of protein (left) and sample (right).
+#| fig-cap: Protein detection count as a function of protein (A) and sample (B). The sudden drop in protein detecton in panel B is due to sample D5_01-45 (see @tbl-bad-sample).
 #| fig-width: 10
 #| fig-height: 4
 tar_read(fig_detection)
@@ -272,13 +272,13 @@ tar_read(metadata_covid) |>
 
 ## Abundance distribution
 
-The plot shows distribution of raw and normalised protein abundance:
+@fig-abundance-distribution shows distribution of raw and normalised protein abundance.
 
-![Distribution of raw (left) and normalised (right) protein intensities.](../fig/kernels.png){#fig-abundance-distribution}
+![Distribution of raw (A) and normalised (B) protein intensities.](../fig/kernels.png){#fig-abundance-distribution width=70%}
 
 ## Clustering
 
-OK, this is a monstrous figure, but allows to see all the samples clustered together. Colours of sample names represent batches. We can see that batch effects dominate this experiment. Hierarchical clustering was calculated based on logarithm of normalised intensities, with Euclidean distance, using complete linkage method.
+@fig-clustering-circular shows clustering of all samples. Colours represent batches. We can see that batch effects dominate this experiment. Hierarchical clustering was calculated based on logarithm of normalised intensities, with Euclidean distance, using complete linkage method.
 
 ```{r}
 #| label: fig-clustering-circular
@@ -290,19 +290,19 @@ tar_read(fig_clustering_circular)
 
 ## Correlation matrix
 
-This figure shows Pearson's correlation coefficient for all pairs of samples. It is a bit messy. The bad sample is clearly visible as a dark row and column. The figure is based on logarithm of normalised intensities.
+@fig-cormat shows Pearson's correlation coefficient for all pairs of samples. It is a bit messy. The bad sample is clearly visible as a dark row and column. The figure is based on logarithm of normalised intensities.
 
 ```{r}
 #| label: fig-cormat
 #| fig-cap: Correlation matrix for all samples.
 #| fig-width: 10
 #| fig-height: 10
-tar_read(fig_cormat) 
+tar_read(fig_cormat)
 ```
 
 ## PCA
 
-The figure is based on logarithm of normalised intensities. The bad replicate stands out.
+@fig-pca shows first two principal components, based on logarithm of normalised intensities. The bad replicate stands out.
 
 ```{r}
 #| label: fig-pca
@@ -314,7 +314,7 @@ tar_read(fig_pca)
 
 ## UMAP
 
-UMAP is dimensionality reduction method, an alternative to PCA. It retains structure of high-dimensional data when embedded in two dimensions.
+UMAP is dimensionality reduction method, an alternative to PCA. It retains structure of high-dimensional data when embedded in two dimensions. Shown in @fig-umap.
 
 ```{r}
 #| label: fig-umap
@@ -323,6 +323,9 @@ UMAP is dimensionality reduction method, an alternative to PCA. It retains struc
 #| fig-height: 5
 tar_read(fig_umap) 
 ```
+
+
+
 
 # Differential abundance
 
@@ -349,44 +352,42 @@ The differential abundance is calculated with respect to the baseline:
 -   treatment = placebo
 -   day = 1
 -   batch = 3
--   age_group = \<50
+-   age_group = <50
 -   sex = M
 
 In this model, and models below, bad replicate and data from batch 1 and 2 are ignored.
 
-The figure below shows MA plots for each of the coefficients. Each panel corresponds to one value of one coefficient, showing differential abundance with respect to the baseline.
+@fig-ma-full shows MA plots for each of the coefficients. Each panel corresponds to one value of one coefficient, showing differential abundance with respect to the baseline.
 
 ```{r}
 #| label: fig-ma-full
-#| fig-cap: MA plots of the full model ~ treatment + day + batch + age_group + sex.
+#| fig-cap: MA plots of the full model `~ treatment + day + batch + age_group + sex`. Black points indicate proteins with significant differential abundance, defined as FDR < 0.01.
 #| fig-width: 10
 #| fig-height: 10
 tar_read(fig_ma_full) 
 ```
 
-Black points indicate proteins with significant -- false discovery rate (FDR) \< 0.01 -- differential abundance. Note that with dozens of samples even small changes become statistically significant, so we need to pay attention to the effect size (log fold change).
+Note, that with dozens of samples available even small changes become statistically significant, so we need to pay attention to the effect size (log fold change).
 
 The biggest effect comes from batch differences and time points. The drug effect is week, though it shows a few differentially abundant (DA) proteins, these might be flukes. We are going to look at drug effect in details later. Similarly, other factors (age and sex) have very week effect on DA.
 
 ## Batch effect
 
-Next, we look at the difference between batches 3, 4 and 5. For this, a simple model with only batch as effect was created and three contrasts calculated:
+Next, we look at the difference between batches 3, 4 and 5. For this, a simple model with only batch as effect was created and three contrasts calculated. The results are shown in @fig-ma-batch.
 
 ```{r}
 #| label: fig-ma-batch
-#| fig-cap: MA plots to show the batch effects. Contrasts between batches 3, 4 and 5 were calculated.
+#| fig-cap: MA plots to show the batch effects. The model was `~ 0 + batch` and contrasts between batches 3, 4 and 5 (denoted as x3, x4 and x5) were calculated.
 #| fig-width: 8
 #| fig-height: 3
 tar_read(fig_ma_batch)
 ```
 
-Somehow batches 4 and 5 are the most different, but statistical significance can be misleading here due to a large number of samples and a complex design.
-
 @fig-batch-examples shows a couple of examples to demonstrate the strength of batch effect. MS run indeces are also included.
 
 ```{r}
 #| label: fig-batch-examples
-#| fig-cap: Examples of two proteins strongly affecged by batch effects.
+#| fig-cap: Examples of two proteins strongly affected by batch effects.
 #| fig-width: 9
 #| fig-height: 5
 tar_read(fig_batch_examples)
@@ -394,6 +395,8 @@ tar_read(fig_batch_examples)
 
 
 ### Gene set enrichment for batch effect
+
+Out of curiosity we check if there are any functionally enriched groups of genes, responsible for batch effect.
 
 ```{r}
 tar_load(gse_batch5)
@@ -405,7 +408,7 @@ map_dfr(names(gse_batch5), function(ont) {
     select(ontology, term_id, term_name, fdr, nes, size, contrast) |> 
     mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
 }) |> 
-  DT::datatable()
+  gt()
 ```
 
 ## Day 1
@@ -414,7 +417,11 @@ We select day 1 data only and consider a model
 
 `~ treatment + batch + age_group + sex`
 
+Results are shown in @fig-ma-day1.
+
 ```{r}
+#| label: fig-ma-day1
+#| fig-cap: MA plots of the model `~ treatment + batch + age_group + sex` at day 1 only.
 #| fig-width: 8
 #| fig-height: 8
 tar_read(fig_ma_day1) 
@@ -424,43 +431,52 @@ Not surprisingly there is no drug effect on day 1.
 
 ## Day 29
 
-Now the same for day 29. Note that there is no batch 3 in day 29 data.
+Now the same for day 29 (@fig-ma-day29). Note that there is no batch 3 in day 29 data.
 
 ```{r}
+#| label: fig-ma-day29
+#| fig-cap: MA plots of the model `~ treatment + batch + age_group + sex` at day 29 only.
 #| fig-width: 8
 #| fig-height: 5.5
 tar_read(fig_ma_day29) 
 ```
 
-Now a lot of proteins are 'significant' in drug effect, but the fold change is not any different from day 1. We need to be careful interpreting these results. Again, they are completely dominated by batch effects.
+A lot of proteins are 'significant' in drug effect, but the fold change is not any different from day 1. We need to be careful interpreting these results. Again, they are completely dominated by batch effects.
 
 ## Day 29 and batch effects
 
-There are two batches within day 29: batch 4 and batch 5. As demonstrated above, the batch effect is strong. Here, two data subsets are considered, for batch 4 and batch 5 separately (both for day 29). The model is
+There are two batches within day 29: batch 4 and batch 5. As demonstrated above, batch effects are strong. Here, two data subsets are considered, for batch 4 and batch 5 separately (both for day 29). The model is
 
 `~ treatment + age_group + sex`
 
+Results are shown in @fig-ma-day29-batch45.
+
 ```{r}
+#| label: fig-ma-day29-batch45
+#| fig-cap: MA plots for differential abundance with model `~ treatment + age_group + sex`, performed on batch 4 and batch 5 separately.
 #| fig-width: 8
-#| fig-height: 5.5
-tar_read(fig_ma_day29_b4) + ggtitle("Batch 4")
+#| fig-height: 12
+g1 <- tar_read(fig_ma_day29_b4) + ggtitle("Batch 4")
+g2 <- tar_read(fig_ma_day29_b5) + ggtitle("Batch 5")
+cowplot::plot_grid(g1, g2, ncol = 1, align = "v")
 ```
 
-```{r}
-#| fig-width: 6
-#| fig-height: 5.5
-tar_read(fig_ma_day29_b5) + ggtitle("Batch 5")
-```
 
-The next figure shows overlap for DA proteins (FDR \< 0.01) for day 29: batch 4, batch 5 and both:
+ @fig-upset-day29 shows overlap for DA proteins (FDR \< 0.01) for day 29: batch 4, batch 5 and both:
 
 ```{r}
+#| label: fig-upset-day29
+#| fig-cap: UpSet plot to compare differential abundance (between drug and placebo) results for batch 4, batch 5 and both batches combined, at day 29. Each set consists with DA proteins (FDR < 0.01).
+#| fig-width: 8
+#| fig-height: 5
 upset(fromList(tar_read(ups_day29))) 
 ```
 
-The only proteins in agreement between three selections are:
+The only proteins in agreement between three selections are listed in @tbl-dal-day29-treatment-best with their normalised abundances shown in @fig-day29-best.
 
-```{r day29_best}
+```{r}
+#| label: tbl-dal-day29-treatment-best
+#| tbl-cap: DA proteins from overlap between results from batch 4 and 5.
 tar_read(dal_day29_treatment_best) |> 
   select(-protein_names) |> 
   gt()
@@ -468,15 +484,21 @@ tar_read(dal_day29_treatment_best) |>
 
 Here are abundances from these proteins:
 
-```{r fig_day29_best, fig.width=10, fig.height=4}
+```{r}
+#| label: fig-day29-best
+#| fig-cap: Normalised abundance for DA proteins from overlap between results from batch 4 and 5.
+#| fig-width: 8
+#| fig-height: 4
 tar_read(fig_day29_best)
 ```
 
 ## The outlier
 
-There is one persistent outlier keeping high levels of AZU1 and CTSG on day 29. It is the same participant, ID 1132, one of the youngest in the cohort:
+There is one persistent outlier keeping high levels of AZU1 and CTSG on day 29, seemingly unaffected by the drug. It is the same participant, ID 1132, one of the youngest in the cohort, see @tbl-outlier and @fig-outlier.
 
 ```{r}
+#| label: tbl-outlier
+#| tbl-cap: Outlier in DA results.
 tar_read(metadata_covid) |> 
   filter(participant_id == 1132) |> 
   select(participant_id, age, sex, time_from_symptoms, completion) |> 
@@ -484,25 +506,58 @@ tar_read(metadata_covid) |>
   gt()
 ```
 
-These are the same five proteins for this participant 1132:
 
-```{r fig_day29_best_1132, fig.width=10, fig.height=4}
+```{r}
+#| label: fig-outlier
+#| fig-cap: Normalised abundance for DA proteins from overlap between results from batch 4 and 5, for the outlier (see @tbl-outlier) only.
+#| fig-width: 8
+#| fig-height: 4
 tar_read(fig_day29_best_part1132)
 ```
 
+
+
+
+
 # Per participant DA
 
-Protein measurements at different time points are not independent, as they come from the same individuals. The plot below shows which participants gave samples at which days:
+Protein measurements at different time points are not independent, as they come from the same individuals. @fig-participants-1-29 shows which participants gave samples at which days:
 
 ```{r}
+#| label: fig-participants-1-29
+#| fig-cap: Graphical summary of sample delivery from all participants, both on drug and placebo. Colours show batches. Black lines indicate participants delivering samples both on day 1 and 29.
 #| fig-width: 10
 #| fig-height: 5
 tar_read(fig_participant_1_29)
 ```
 
-Black lines indicate participants delivering samples both on day 1 and 29. We can use these data to link day 1 and 29 data and make a paired model. For this, a log-ratio of intensity at day 29 to day 1 is calculated for each participant and each protein. If there is no change in protein abundance between days 1 and 29, the log-ratio should be close to 0. We perform a one-sample test for each protein with the null hypothesis of 0. We use `limma` to control variance between proteins.
+We can use these data to link day 1 and 29 measurements to create a paired model. For this, a log-ratio of intensity at day 29 to day 1 is calculated for each participant $i$ and each protein $j$:
 
-This should give us differential abundance in time (days 1 and 29), corrected for interdependence (participants).
+$$R_{ij} = \log_2 \left(\frac{I_{ij,29}}{I_{ij,1}}\right)$$
+
+## Normalisation
+
+If there is no change in protein abundance between days 1 and 29, $R_{ij}$ should be close to 0. @fig-lograt-dist shows distribution of $R_{ij}$ for each participant. Some of them have $R$ distribution shifted towards positive or negative values. Here we assume that there is no massive change in expression between days 1 and 29, so we normalised these data using quantile normalisation before further processing, as shown in @fig-lograt-dist-norm.
+
+```{r}
+#| label: fig-lograt-dist
+#| fig-cap: Distributon of R for each participant. Colours code batch at day 1 and day 29.
+#| fig-width: 8
+#| fig-height: 10
+tar_read(fig_lograt_dist)
+```
+
+```{r}
+#| label: fig-lograt-dist-norm
+#| fig-cap: Distributon of R for each participant, after quantile normalisation. Colours code batch at day 1 and day 29.
+#| fig-width: 8
+#| fig-height: 10
+tar_read(fig_lograt_dist_norm)
+```
+
+## Comparing day 1 and 29 for drug and placebo separately
+
+First, we look at differential abundance between day 1 and 29, for drug and placebo separatly. We perform a one-sample test for each protein with the null hypothesis of $R = 0$. We use `limma` to control variance between proteins. This gives differential abundance in time (days 1 and 29), corrected for interdependence (participants).
 
 ```{r}
 tar_load(gse_dl)
@@ -516,21 +571,25 @@ tb <- map_dfr(names(gse_dl), function(ont) {
 })
 ```
 
-## Volcano plots
+### Volcano plots
 
 ```{r}
+#| label: fig-volcano-dl
+#| fig-cap: Differential abundance results of paired log-ratio between day 1 and 29. 
 #| fig-width: 7
 #| fig-height: 3
 tar_read(fig_volcano_dl)
 ```
 
-## Placebo set enrichment
+Below, we show results for gene-set enrichment for placebo and drug. Not surprisingly, the top terms are response to virus. These proteins are changin down from day 1 to day 29, as most of the immune response was at the beginning of infection.
+
+### Placebo set enrichment
 
 ```{r}
 DT::datatable(tb |> filter(contrast == "placebo") |> select(-contrast))
 ```
 
-## Drug set_enrichment
+### Drug set_enrichment
 
 ```{r}
 DT::datatable(tb |> filter(contrast == "drug") |> select(-contrast))
@@ -538,25 +597,24 @@ DT::datatable(tb |> filter(contrast == "drug") |> select(-contrast))
 
 ## Drug vs placebo
 
-We can compare a day 1-to-29 change between drug and placebo.
+In the next step, we compare day 1-to-29 change between drug and placebo. For this, we build a model `~ treatment + age_group + sex`, based on log-ratios $R_{ij}$ between days 1 and 29.
 
 ```{r}
+#| label: fig-volcano_dl_drug_vs_placebo
+#| fig-cap: MA plots for differential abundnace model `~ treatment + age_group + sex` from day 1-to-29 log-ratios.
 #| fig-width: 8
 #| fig-height: 5.5
 tar_read(fig_volcano_dl_drug_vs_placebo)
 ```
 
-Here are the significant proteins:
+The significant proteins are shown in @fig-dl-drug-vs-placebo.
 
 ```{r}
-tar_load(dal_dl_drug_vs_placebo_proteins)
-DT::datatable(dal_dl_drug_vs_placebo_proteins |> select(-protein_names)) 
-```
-
-```{r}
+#| label: fig-dl-drug-vs-placebo
+#| fig-cap: Significant (FDR < 0.01) proteins for DA between drug and placebo based on paired log-ratio of day 1 and 29.
 #| fig-width: 10
 #| fig-height: 8
-tar_read(fig_dl_drug_vs_placebo) 
+tar_read(fig_dl_drug_vs_placebo)
 ```
 
 ## Gene set enrichment
@@ -565,17 +623,22 @@ Gene set enrichment takes genes/proteins ordered by log-fold-change (ignoring p-
 
 Here we use fold changes from day 29 selection, for treatment and age contrasts (batch excluded). The baseline is treatment = placebo and age_group = '\<50'. Contrast names are at the top of each panel. For example `age_group>80` means comparison between `>80` and the baseline `<50`.
 
-The figure below shows volcano plots for various contrasts and functional terms, with term-annotated proteins highlighted.
+@fig-gse-examples shows volcano plots for various contrasts and functional terms, with term-annotated proteins highlighted.
 
-![](../fig/gse_examples.png)
+![Volcano plots for significant functional terms, for day29, with genes annotated with these terms marked in black.](../fig/gse_examples.png){#fig-gse-examples}
 
 Below is the full result of gene-set-enrichment procedure (excluding batch effects). The FDR level was set to 0.05. NES stands for normalised effect size and tells you how far the group of proteins annotated with this term is skewed in logFC. Small and large NES means proteins are predominantly down- or up-regulated, respectively. The last column contains up to 10 top most changing genes (in the same direction as NES).
 
 ```{r}
+#| label: tbl-gse-day29
+#| tbl-cap: Significant terms for GSE on day 29.
 tar_read(gse_da_day29_sig) |> 
   select(-ontology) |> 
   gt()
 ```
+
+
+
 
 # Resources
 

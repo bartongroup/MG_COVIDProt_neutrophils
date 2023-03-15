@@ -10,7 +10,7 @@ targets_report <- function() {
     tar_target(png_kernels, plot_kernel_comparison(covid) |> gs("kernels", 6, 3)),
     tar_target(fig_clustering, plot_clustering(covid, colour_var = "batch")),
     tar_target(fig_clustering_circular, plot_clustering_circular(covid, colour_var = "batch", shape_var = "day")),
-    tar_target(fig_cormat, plot_distance_matrix(covid)),
+    tar_target(fig_cormat, plot_distance_matrix(covid, text_size = 4)),
     tar_target(fig_pca, plot_pca(covid, colour_var = "batch", shape_var = "day")),
     tar_target(fig_umap, plot_umap(covid, n_neighbours = 20, min_dist = 0.1, colour_var = "batch", shape_var = "day")),
     tar_target(fig_participant_1_29, plot_participant_1_29(covid$metadata)),
@@ -41,7 +41,10 @@ targets_report <- function() {
     tar_target(fig_batch_examples, plot_protein(covid, pids = BATCH_EXAMPLES, colour_var = "run_index", shape_var = "batch")),
     tar_target(fig_day29_best, plot_protein(covid, pids = dal_day29_treatment_best_ids, ncol = 5)),
     tar_target(fig_day29_best_part1132, plot_protein(covid, pids = dal_day29_treatment_best_ids, ncol = 5, sample_sel = c("D5_01-35", "D5_29-18"))),
-    tar_target(fig_dl_drug_vs_placebo, plot_lograt_protein(lograt, pids = dal_dl_drug_vs_placebo$treatmentdrug, ncol = 5))
+    tar_target(fig_dl_drug_vs_placebo, plot_lograt_protein(lograt, pids = dal_dl_drug_vs_placebo$treatmentdrug, what = "logFC_quant", ncol = 5)),
+    
+    tar_target(fig_lograt_dist, plot_sample_ridges(lograt, what = "logFC", name_var = "participant_id", fill_var = "batches", scale = 6, bandwidth = 0.06) + xlim(-3, 3)),
+    tar_target(fig_lograt_dist_quant, plot_sample_ridges(lograt, what = "logFC_quant", name_var = "participant_id", fill_var = "batches", scale = 6, bandwidth = 0.06) + xlim(-3, 3))
   )
   
   upsets <- list(

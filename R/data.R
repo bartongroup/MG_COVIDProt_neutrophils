@@ -298,8 +298,28 @@ logfc_days <- function(set, days = c(1, 29), min_det = 3) {
     pull(id) |> 
     unique()
   
+  # Median normalisation
   dat <- dat |> 
-    filter(id %in% good_prots)
+    filter(id %in% good_prots) |> 
+    group_by(participant_id) |> 
+    mutate(norm = median(logFC)) |> 
+    mutate(logFC_med = logFC - norm) |> 
+    select(-norm) |> 
+    ungroup()
+  
+  # Quantile normalisation
+  dat_norm <- dat |>
+    pivot_wider(id_cols = id, names_from = participant_id, values_from = logFC) |> 
+    column_to_rownames("id") |> 
+    as.matrix() |> 
+    preprocessCore::normalize.quantiles(keep.names = TRUE) |> 
+    as_tibble(rownames = "id") |> 
+    pivot_longer(-id, names_to = "participant_id", values_to = "logFC_quant") |> 
+    mutate(id = as.integer(id)) |> 
+    drop_na()
+  
+  dat <- dat |> 
+    left_join(dat_norm, by = c("id", "participant_id"))
   
   list(
     dat = dat,
