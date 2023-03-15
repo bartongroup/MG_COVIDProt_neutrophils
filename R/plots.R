@@ -755,6 +755,39 @@ plot_sample_ridges <- function(st, what = "abu_tot", name_var = "sample", fill_v
       scale_fill_manual(values = okabe_ito_palette) +
       labs(x = what, y = name_var, fill = fill_var)    
   })
-
 }
 
+
+plot_protein_means <- function(set, pids, what = "abu_norm", min_n = 3) {
+  info <- df$info |> 
+    filter(id %in% pids) |> 
+    mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) |> 
+    mutate(prot = glue::glue("{gene_names}: {protein_descriptions}"))
+  
+  set$dat |> 
+    filter(id %in% pids) |> 
+    left_join(set$metadata, by = "sample") |> 
+    left_join(info, by = "id") |> 
+    mutate(val = get(what)) |> 
+    select(prot, day, treatment, val) |> 
+    mutate(day = as.numeric(as.character(day))) |> 
+    group_by(prot, treatment, day) |> 
+    summarise(
+      m = mean(val),
+      s = sd(val),
+      n = n(),
+      se = s / sqrt(n),
+      t_crit = qt(0.975, df = n - 1),
+      ci = se * t_crit
+    ) |> 
+    filter(n >= min_n) |> 
+  ggplot(aes(x = day, y = m, ymin = m - ci, ymax = m + ci, colour = treatment)) +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    geom_point() +
+    geom_line() +
+    geom_errorbar(width = 0.3) +
+    facet_wrap(~prot, scales = "free_y") +
+    scale_colour_manual(values = okabe_ito_palette)
+    
+}
