@@ -498,6 +498,16 @@
       ],
       "Hash": "e8a22846fff485f0be3770c2da758713"
     },
+    "assertthat": {
+      "Package": "assertthat",
+      "Version": "0.2.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Requirements": [
+        "tools"
+      ],
+      "Hash": "50c838a310445e954bc13f26f26a6ecf"
+    },
     "backports": {
       "Package": "backports",
       "Version": "1.4.1",
@@ -1003,6 +1013,37 @@
         "R"
       ],
       "Hash": "dabc225759a2c2b241e60e42bf0e8e54"
+    },
+    "fenr": {
+      "Package": "fenr",
+      "Version": "0.1.15",
+      "Source": "GitHub",
+      "RemoteType": "github",
+      "RemoteUsername": "bartongroup",
+      "RemoteRepo": "fenr",
+      "RemoteRef": "main",
+      "RemoteSha": "284c6d6ae72eef33b9cc181f373c98fa1660692f",
+      "RemoteHost": "api.github.com",
+      "Requirements": [
+        "R",
+        "XML",
+        "assertthat",
+        "biomaRt",
+        "dplyr",
+        "ggplot2",
+        "httr",
+        "jsonlite",
+        "methods",
+        "progress",
+        "purrr",
+        "readr",
+        "rlang",
+        "shiny",
+        "stringr",
+        "tibble",
+        "tidyr"
+      ],
+      "Hash": "4e201749386f6c48016d876131b87b6c"
     },
     "fgsea": {
       "Package": "fgsea",
@@ -2011,6 +2052,19 @@
         "R"
       ],
       "Hash": "bd54ba8a0a5faded999a7aab6e46b374"
+    },
+    "preprocessCore": {
+      "Package": "preprocessCore",
+      "Version": "1.60.2",
+      "Source": "Bioconductor",
+      "git_url": "https://git.bioconductor.org/packages/preprocessCore",
+      "git_branch": "RELEASE_3_16",
+      "git_last_commit": "71fbf1d",
+      "git_last_commit_date": "2023-01-19",
+      "Requirements": [
+        "stats"
+      ],
+      "Hash": "2f43c91de2c073748ca399e323693de4"
     },
     "prettyunits": {
       "Package": "prettyunits",
