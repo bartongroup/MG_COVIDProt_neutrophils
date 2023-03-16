@@ -1,0 +1,20 @@
+{
+  "title" : "STOP-COVID neutrophils",
+  "subtitle" : "Proteomics of brensocatib vs placebo",
+  "data_path" : "../data",
+  "max_points" : 3000,
+  "file_names" : {
+    "data": "data.rds",
+    "metadata": "metadata.rds",
+    "features": "features.rds",
+    "de": "de.rds",
+    "fterms": "fterms.rds",
+    "gse": "gse.rds"
+  },
+  "data_columns" : {
+    "logFC" : "logFC",
+    "logFC_med" : "logFC median",
+    "logFC_quant" : "logFC quantile"
+  },
+  "default_data_column" : "logFC_quant"
+}

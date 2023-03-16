@@ -622,7 +622,7 @@ tar_read(fig_dl_drug_vs_placebo)
 #| fig-cap: Significant (FDR < 0.01) proteins for DA between brensocatib and placebo based on paired log-ratio of day 1 and 29. Points indicate the mean and error bars show 95% confidence intervals.
 #| fig-width: 10
 #| fig-height: 8
-tar_read(fig_timeline_drug_vs_placebo)
+tar_read(fig_timeline_drug_vs_placebo) 
 ```
 
 
@@ -643,7 +643,7 @@ Below is the full result of gene-set-enrichment procedure (excluding batch effec
 #| tbl-cap: Significant terms for GSE on day 29.
 tar_read(gse_da_day29_sig) |> 
   select(-ontology) |> 
-  gt()
+  DT::datatable()
 ```
 
 

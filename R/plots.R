@@ -792,12 +792,12 @@ plot_protein_means <- function(set, pids, what = "abu_norm", min_n = 3, ncol = 3
   days <- unique(d$day) |> sort()
   pd <- position_dodge(width = dodge_width)
   d |> 
-    ggplot(aes(x = day, y = m, ymin = m - ci, ymax = m + ci, colour = treatment)) +
+    ggplot(aes(x = day, y = m, ymin = m - ci, ymax = m + ci, colour = treatment, fill = treatment)) +
     theme_bw() +
     theme(panel.grid = element_blank(), legend.position = "top") +
-    geom_point(position = pd) +
     geom_line(alpha = 0.5, position = pd) +
     geom_errorbar(position = pd, width = 1) +
+    geom_point(position = pd, shape = 21, colour = "grey30") +
     facet_wrap(~prot, labeller = label_wrap_gen(), scales = "free_y", ncol = ncol) +
     scale_colour_manual(values = okabe_ito_palette) +
     scale_x_continuous(breaks = days) +

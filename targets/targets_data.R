@@ -23,10 +23,7 @@ targets_data <- function() {
   )
   
   save_shiny <- list(
-    tar_target(save_shiny_terms, write_rds(fterms, "shiny/terms.rds", compress = "xz")),
-    tar_target(save_shiny_genes, write_rds(bm_genes, "shiny/genes.rds", compress = "xz")),
-    tar_target(save_shiny_da_day29, write_rds(da_day29, "shiny/da_day29.rds", compress = "xz")),
-    tar_target(save_shiny_data, write_rds(covid, "shiny/data.rds", compress = "xz"))
+    tar_target(sav_shiny, save_data_for_shiny(lograt, dl_drug_vs_placebo, terms, fterms, gse_dl_drug_vs_placebo))
   )
   
   
