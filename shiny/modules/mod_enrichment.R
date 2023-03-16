@@ -95,6 +95,7 @@ mod_enrichment_server <- function(id, state) {
     
     output$enrichment <- DT::renderDataTable({
       fe <- enrichment_table()
+      req(fe)
       DT::datatable(
         fe,
         options = list(paging = FALSE),

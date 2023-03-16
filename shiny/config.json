@@ -12,9 +12,8 @@
     "gse": "gse.rds"
   },
   "data_columns" : {
-    "logFC" : "logFC",
-    "logFC_med" : "logFC median",
-    "logFC_quant" : "logFC quantile"
+    "abu" : "Abundance",
+    "abu_norm" : "Normalised abundance"
   },
-  "default_data_column" : "logFC_quant"
+  "default_data_column" : "abu_norm"
 }

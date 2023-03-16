@@ -30,11 +30,11 @@ dashboardPage(
                mod_volma_plot_ui("volma_plot")
              ),
              box(
-               title = "Feature plot",
+               title = "Timeline plot",
                status = "primary",
                width = NULL,
                height = "auto",
-               mod_feature_plot_ui("feature_plot")
+               mod_timeline_plot_ui("timeline_plot")
              )
       ),
       

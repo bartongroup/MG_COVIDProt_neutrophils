@@ -23,7 +23,7 @@ targets_data <- function() {
   )
   
   save_shiny <- list(
-    tar_target(sav_shiny, save_data_for_shiny(lograt, dl_drug_vs_placebo, terms, fterms, gse_dl_drug_vs_placebo))
+    tar_target(sav_shiny, save_data_for_shiny(covid, dl_drug_vs_placebo, terms, fterms, gse_dl_drug_vs_placebo))
   )
   
   

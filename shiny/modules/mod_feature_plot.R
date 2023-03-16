@@ -1,6 +1,6 @@
 # Module FEATURE PLOT
 #
-# Creates an intensity vs group plot for one feature ID or a sample vs ID vs
+# Creates an intensity vs group plot for one feature ID or a entity vs ID vs
 # intensity heatmap for multiple feature IDs,
 #
 # Input:
@@ -118,7 +118,7 @@ sh_plot_one_feature <- function(d, ylab, scale = c("lin", "log"), text_size, poi
       legend.position = "none"
     ) +
     scale_shape_identity() +  # necessary for shape mapping
-    geom_beeswarm(data = d, aes(x = group, y = val, fill = replicate, shape = shape),
+    geom_beeswarm(data = d, aes(x = group, y = val, fill = colour, shape = shape),
                   colour = "grey40", size = point_size, cex = cex) +
     geom_vline(data = vlines, aes(xintercept = x), colour = "grey80", alpha = 0.5) +
     scale_fill_viridis_d(option = "cividis") +
@@ -152,7 +152,7 @@ sh_plot_feature_heatmap <- function(d, lab, text_size, max_n_lab, norm_fc) {
   }
   
   g <- d |> 
-    ggplot(aes(x = sample, y = name, fill = val)) +
+    ggplot(aes(x = entity, y = name, fill = val)) +
     theme_bw() +
     theme(
       panel.grid = element_blank(),
@@ -176,10 +176,10 @@ sh_plot_feature_heatmap <- function(d, lab, text_size, max_n_lab, norm_fc) {
   return(g)
 }
 
-#' Make a feature plot: intensity vs sample or group
+#' Make a feature plot: intensity vs entity or group
 #'
 #' @param dat Tibble with feature intensities
-#' @param meta Metadata with grouping of samples
+#' @param meta Metadata with grouping of entities
 #' @param scale Intensity scale, "lin" or  "log"
 #' @param what Which column to plot
 #' @param text_size Text size
@@ -196,7 +196,7 @@ sh_plot_features <- function(dat, meta, scale, what = "rpkm", text_size = 14, po
   
   d <- dat |> 
     dplyr::mutate(val = get(what)) |> 
-    dplyr::left_join(meta, by = "sample")
+    dplyr::left_join(meta, by = "entity")
   
   lab <- what
   

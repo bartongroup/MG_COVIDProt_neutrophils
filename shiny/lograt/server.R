@@ -17,7 +17,7 @@ server <- function(input, output, session) {
   # server logic: modules
   mod_global_input_server("global_input", app_state)
   mod_volma_plot_server("volma_plot", app_state)
-  mod_feature_plot_server("feature_plot", app_state)
+  mod_timeline_plot_server("timeline_plot", app_state)
   mod_feature_info_server("feature_info", app_state)
   mod_enrichment_server("enrichment", app_state)
   mod_communication_server("communication", app_state)

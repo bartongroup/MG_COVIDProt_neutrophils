@@ -32,7 +32,6 @@ sr_ <- sapply(files_R, source)
 CONFIG <- jsonlite::read_json("../config.json")
 
 # Read all data, make it available to all modules
-
 DATA <- sh_read_data(c("data", "metadata", "features", "de", "fterms"), with_progress = FALSE)
 
 DATA$id2name <- set_names(DATA$features$name, DATA$features$id)

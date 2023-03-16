@@ -14,13 +14,9 @@ save_data_for_shiny <- function(dataset, de, terms, fterms, gse) {
   
   de <- de |> 
     rename(p_value = PValue, fdr = FDR, log_fc = logFC, log_exp = AveExpr)
-  data <- dataset$dat |> 
-    rename(sample = participant_id)
-  metadata <- dataset$metadata |>
-    rename(group = treatment) |> 
-    add_column(replicate = 1) |> 
-    mutate(replicate = as_factor(replicate)) |>
-    rename(sample = participant_id)
+  data <- dataset$dat
+  metadata <- dataset$metadata
+  
   features <- de |>
     select(id, name = gene_symbol) |>
     distinct() |> 
