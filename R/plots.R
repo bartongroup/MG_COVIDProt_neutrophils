@@ -213,6 +213,9 @@ plot_clustering <- function(set, text_size = 10, what = "abu_norm", dist.method 
 
 plot_clustering_circular <- function(set, what = "abu_norm", dist.method = "euclidean",
                                      clust.method = "complete", colour_var = "batch", shape_var = "day") {
+  env <- new.env(parent = globalenv())
+  env$shape_var <- shape_var
+  
   dat <- set$dat |> 
     left_join(set$metadata, by = "sample") |> 
     filter(!bad)
@@ -232,15 +235,18 @@ plot_clustering_circular <- function(set, what = "abu_norm", dist.method = "eucl
   colours <- split(m$sample, m[[colour_var]])
   shapes <- split(m$sample, m[[shape_var]])
 
-  phg <- ph |> 
+  env$phg <- ph |> 
     groupOTU(colours, group_name = "colour") |> 
     groupOTU(shapes, group_name = "shape")
   
-  ggtree(phg, aes(colour = colour, shape = factor(shape, levels = levels(m[[shape_var]]))), layout = "daylight", branch.length = "branch.length") +
-    geom_tippoint() +
-    scale_colour_manual(values = okabe_ito_palette) +
-    scale_shape_manual(values = c(15:18, 0, 1, 2, 5, 6), na.value = 4, name = shape_var) +
-    labs(colour = "Batch", shape = "Day")
+  with(env, {
+    ggtree(phg, aes(colour = colour, shape = factor(shape, levels = levels(m[[shape_var]]))), layout = "daylight", branch.length = "branch.length") +
+      geom_tippoint() +
+      scale_colour_manual(values = okabe_ito_palette) +
+      scale_shape_manual(values = c(15:18, 0, 1, 2, 5, 6), na.value = 4, name = shape_var) +
+      labs(colour = "Batch", shape = "Day")    
+  })
+
 }
   
 
@@ -758,17 +764,19 @@ plot_sample_ridges <- function(st, what = "abu_tot", name_var = "sample", fill_v
 }
 
 
-plot_protein_means <- function(set, pids, what = "abu_norm", min_n = 3) {
-  info <- df$info |> 
+plot_protein_means <- function(set, pids, what = "abu_norm", min_n = 3, ncol = 3,
+                               exclude_days = 4, dodge_width = 1) {
+  info <- set$info |> 
     filter(id %in% pids) |> 
     mutate(protein_descriptions = str_remove(protein_descriptions, ";.+$")) |> 
     mutate(prot = glue::glue("{gene_names}: {protein_descriptions}"))
   
-  set$dat |> 
+  d <- set$dat |> 
     filter(id %in% pids) |> 
     left_join(set$metadata, by = "sample") |> 
     left_join(info, by = "id") |> 
     mutate(val = get(what)) |> 
+    filter(!(day %in% exclude_days)) |> 
     select(prot, day, treatment, val) |> 
     mutate(day = as.numeric(as.character(day))) |> 
     group_by(prot, treatment, day) |> 
@@ -780,14 +788,19 @@ plot_protein_means <- function(set, pids, what = "abu_norm", min_n = 3) {
       t_crit = qt(0.975, df = n - 1),
       ci = se * t_crit
     ) |> 
-    filter(n >= min_n) |> 
-  ggplot(aes(x = day, y = m, ymin = m - ci, ymax = m + ci, colour = treatment)) +
+    filter(n >= min_n)
+  days <- unique(d$day) |> sort()
+  pd <- position_dodge(width = dodge_width)
+  d |> 
+    ggplot(aes(x = day, y = m, ymin = m - ci, ymax = m + ci, colour = treatment)) +
     theme_bw() +
-    theme(panel.grid = element_blank()) +
-    geom_point() +
-    geom_line() +
-    geom_errorbar(width = 0.3) +
-    facet_wrap(~prot, scales = "free_y") +
-    scale_colour_manual(values = okabe_ito_palette)
+    theme(panel.grid = element_blank(), legend.position = "top") +
+    geom_point(position = pd) +
+    geom_line(alpha = 0.5, position = pd) +
+    geom_errorbar(position = pd, width = 1) +
+    facet_wrap(~prot, labeller = label_wrap_gen(), scales = "free_y", ncol = ncol) +
+    scale_colour_manual(values = okabe_ito_palette) +
+    scale_x_continuous(breaks = days) +
+    labs(x = "Day", y = "Normalised abundance", colour = "Treatment")
     
 }

@@ -4,6 +4,20 @@ download_uniprot_mapping <- function(uri) {
     select(uniprot, gene_symbol = gid)
 }
 
+#' Read COVID-19 metadata from an Excel file
+#'
+#' This function reads a metadata Excel file containing information on
+#' participants, samples, and treatments for a COVID-19 study, and performs data
+#' cleaning and variable recoding.
+#'
+#' @param metadata_file A character string specifying the path to the Excel file
+#'   containing the metadata
+#' @param bad_samples A character vector specifying the samples to be marked as
+#'   'bad'
+#'
+#' @return A cleaned data frame containing metadata for the samples, with
+#'   recoded variables and a new 'sample' column created from relevant metadata
+#'   columns
 read_covid_metadata <- function(metadata_file, bad_samples) {
   readxl::read_excel(metadata_file, na = "n/a") |> 
     set_names(c(
@@ -24,7 +38,7 @@ read_covid_metadata <- function(metadata_file, bad_samples) {
     mutate(data_col = str_remove(raw_file_name, ".raw")) |> 
     select(-raw_file_name) |> 
     mutate(
-      treatment = recode(treatment, "Brensocatib 25mg once daily" = "drug", "Placebo 25mg once daily" = "placebo"),
+      treatment = recode(treatment, "Brensocatib 25mg once daily" = "Brensocatib", "Placebo 25mg once daily" = "Placebo"),
       completion = as.logical(completion),
       sex = toupper(sex),
       on_drug = str_remove(on_drug, "\\s\\(discontinued\\)"),
@@ -44,7 +58,7 @@ read_covid_metadata <- function(metadata_file, bad_samples) {
     mutate(trep = row_number()) |> 
     ungroup() |> 
     mutate(
-      s1 = recode(treatment, "drug" = "D", "placebo" = "P"),
+      s1 = recode(treatment, "Brensocatib" = "B", "Placebo" = "P"),
       s2 = as.character(batch),
       s3 = sprintf("%02d", day),
       s4 = sprintf("%02d", trep)
@@ -53,7 +67,7 @@ read_covid_metadata <- function(metadata_file, bad_samples) {
     select(-c(s1, s2, s3, s4, trep)) |> 
     mutate(across(c(batch, run_index, participant_id, day, sex, treatment), as_factor)) |> 
     mutate(
-      treatment = fct_relevel(treatment, "placebo"),
+      treatment = fct_relevel(treatment, "Placebo"),
       sex = fct_relevel(sex, "M"),
       run_index = fct_relevel(run_index, "278"),
       bad = sample %in% bad_samples
@@ -69,6 +83,23 @@ read_raw_file <- function(data_file) {
     ) 
 }
 
+#' Read Spectronaut long format data
+#'
+#' This function reads Spectronaut long format data, filters it based on
+#' metadata, removes contaminants, and normalizes protein quantities.
+#'
+#' @param data_file The raw data file in Spectronaut long format
+#' @param meta A data frame containing metadata for the samples
+#' @param uni_gene A data frame containing UniProt ID to gene symbol mappings
+#' @param contaminants A character vector containing contaminant protein
+#'   accessions
+#'
+#' @return A list containing the following elements:
+#' * metadata: The input metadata
+#' * info: A data frame with protein information and gene names
+#' * id_prot_gene: A data frame with protein ID, UniProt accession, and gene symbol information
+#' * qc: A data frame containing quality control information
+#' * dat: A data frame with normalized protein quantities
 read_spectronaut_long_data <- function(data_file, meta, uni_gene, contaminants) {
   raw <- read_raw_file(data_file) |>
     filter(data_col %in% meta$data_col)
@@ -186,6 +217,18 @@ read_spectronaut_wide_data <- function(file, meta, min_pep) {
 }
 
 
+#' Normalize protein quantities
+#'
+#' This function normalizes protein quantities in a data frame by calculating
+#' the log10 abundance, dividing by the median abundance of each sample, and
+#' scaling by the overall mean median abundance.
+#'
+#' @param dat A data frame containing protein quantities, with columns 'id',
+#'   'sample', and 'quantity'
+#'
+#' @return A data frame with normalized protein abundances, containing columns
+#'   'id', 'sample', 'abu', and 'abu_norm'
+#' 
 normalise_proteins <- function(dat) {
   md <- dat |> 
     mutate(abu = log10(quantity)) |> 
@@ -210,6 +253,19 @@ select_detected_proteins <- function(set) {
 }
 
 
+#' Convert a data frame to a matrix
+#'
+#' This function converts a data frame containing protein abundances to a
+#' matrix, with rows representing protein IDs and columns representing samples.
+#'
+#' @param dat A data frame containing protein abundances
+#' @param what A character string specifying which column should be used as
+#'   values in the matrix (default: "abu_norm")
+#' @param names A character string specifying which column should be used as
+#'   column names in the matrix (default: "sample")
+#'
+#' @return A matrix with protein IDs as row names, sample names as column names,
+#'   and the specified values in the cells
 dat2mat <- function(dat, what = "abu_norm", names = "sample") {
   dat |> 
     pivot_wider(id_cols = id, names_from = !!names, values_from = !!what) |> 
@@ -257,6 +313,15 @@ cluster_dim <- function(d, n_clust) {
     mutate(clust = km$cluster |> as_factor())
 }
 
+#' Get participants with complete data for specified days
+#'
+#' This function filters a metadata data frame to include only participants with
+#' complete data for the specified days and without any bad samples.
+#'
+#' @param meta A data frame containing metadata for the samples, with columns
+#'   'participant_id', 'day', 'sample', 'batch', and 'bad'
+#' @param days A numeric vector specifying the days for which participants
+#'   should have complete data (default: c(1, 29))
 get_full_participants <- function(meta, days = c(1, 29)) {
   meta |> 
     filter(day %in% days & !bad) |> 
@@ -265,6 +330,26 @@ get_full_participants <- function(meta, days = c(1, 29)) {
     set_names(c("participant_id", "first", "last", "first_batch", "last_batch"))
 }
 
+#' Calculate log2 fold change between specified days
+#'
+#' This function calculates the log2 fold change (logFC) of protein abundances
+#' between the specified days for a given set of data and metadata.
+#'
+#' @param set A list containing the following elements:
+#' * dat: A data frame with normalized protein quantities
+#' * metadata: A data frame containing metadata for the samples
+#' * info: A data frame with protein information and gene names
+#' * id_prot_gene: A data frame with protein ID, UniProt accession, and gene symbol information
+#' @param days A numeric vector specifying the days between which to calculate
+#'   logFC (default: c(1, 29))
+#' @param min_det A numeric value specifying the minimum number of detections
+#'   per treatment to include a protein in the analysis (default: 3)
+#'
+#' @return A list containing the following elements:
+#' * dat: A data frame with logFC values, median-normalized logFC values, and quantile-normalized logFC values
+#' * metadata: A data frame containing metadata for the samples
+#' * info: A data frame with protein information and gene names
+#' * id_prot_gene: A data frame with protein ID, UniProt accession, and gene symbol information
 logfc_days <- function(set, days = c(1, 29), min_det = 3) {
   pd <- get_full_participants(set$metadata, days)
   X <- dat2mat(set$dat, what = "abu_norm")
@@ -368,6 +453,7 @@ save_data_csv <- function(set, file) {
     left_join(set$info |> select(id, gene_names, protein_accessions, protein_descriptions), by = "id") |> 
     relocate(c(gene_names, protein_accessions, protein_descriptions), .after = "id") |> 
     write_csv(file)
+  return(1)
 }
 
 collect_participant_stats <- function(meta) {

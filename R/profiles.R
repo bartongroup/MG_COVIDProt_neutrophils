@@ -90,7 +90,7 @@ plot_gradients <- function(tpr) {
     geom_hline(yintercept = 0) +
     geom_vline(xintercept = 0) +
     geom_point(data = xy, aes(x = r1, y = r2), size = 0.3) +
-    stat_ellipse(data = xy, aes(x = r1, y = r2), colour = "red", size = 1, level = 0.99) +
+    stat_ellipse(data = xy, aes(x = r1, y = r2), colour = "red", linewidth = 1, level = 0.99) +
     geom_abline(data = eig, aes(slope = slp1, intercept = intercpt), colour = "red") +
     geom_abline(data = eig, aes(slope = slp2, intercept = intercpt), colour = "red", alpha = 0.4) +
     facet_wrap(~ rat, nrow = 1) +

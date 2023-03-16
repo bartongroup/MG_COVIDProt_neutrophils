@@ -18,13 +18,13 @@ COVID_METADATA_FILE <- "info/20211103_115953_Identifications_STOP-COVID_proteomi
 MIN_PEPTIDES <- 3
 FDR_LIMIT <- 0.01
 
-COVID_BAD_SAMPLES <- c("D5_01-45")
+COVID_BAD_SAMPLES <- c("B5_01-45")
 
 make_metadata_ <- function(s_file) {
   read_tsv(s_file, show_col_types = FALSE) |> 
     mutate(
       sample = data_col |> str_remove("-N"),
-      treatment = if_else(str_detect(data_col, "ST"), "drug", "placebo"),
+      treatment = if_else(str_detect(data_col, "ST"), "Brensocatib", "lacebo"),
       batch = 1
     ) |> 
     mutate(batch = as_factor(batch)) |> 
@@ -37,20 +37,18 @@ make_metadata_ <- function(s_file) {
     )
 }
 
-
 BATCH_EXAMPLES <- c(419, 4291)
 BASE_FILTER <- "completion & batch %in% c(3, 4, 5)"
 
 ENRICHMENT_EXAMPLES <- tibble::tribble(
   ~contrast, ~ontology, ~term_id,
-  "treatmentdrug", "go", "GO:0008236",
-  "treatmentdrug", "go", "GO:0035578",
-  "treatmentdrug", "kg", "hsa04613",
-  "treatmentdrug", "re", "R-HSA-6798695",
+  "treatmentBrensocatib", "go", "GO:0008236",
+  "treatmentBrensocatib", "go", "GO:0035578",
+  "treatmentBrensocatib", "kg", "hsa04613",
+  "treatmentBrensocatib", "re", "R-HSA-6798695",
   "age_group>80", "go", "GO:0072562",
   "age_group>80", "go", "GO:0031720",
   "age_group50-65", "re", "R-HSA-1247673"
 )
-
 
 

@@ -77,7 +77,7 @@ Name Prof. James Chalmers Division Molecular and Clinical Medicine School School
 
 #### Background
 
-From May 2020 we carried out a trial of dipeptidyl peptidase-1/Cathepsin-C inhibitor in hospitalised patients with COVID-19. In total enrolled 144 participants in Dundee. We have data from around 250 neutrophil samples across various timepoints which have been processed and analysed with LC-MS, subsequently utilising Spectronaut software for protein identification. Comparisons of drug vs. placebo groups at 4-5 timepoints is requested, with possible sub-analyses for e.g. age and gender, time from symptom onset. Batch correction across 3-5 batches would also be needed, as significant batch effects were found in other analyses of the proteomics data. If possible we would also do the same thing for the PBMC samples later, however the neutrophil data would be a first priority.
+From May 2020 we carried out a trial of dipeptidyl peptidase-1/Cathepsin-C inhibitor in hospitalised patients with COVID-19. In total enrolled 144 participants in Dundee. We have data from around 250 neutrophil samples across various timepoints which have been processed and analysed with LC-MS, subsequently utilising Spectronaut software for protein identification. Comparisons of brensocatib vs. placebo groups at 4-5 timepoints is requested, with possible sub-analyses for e.g. age and gender, time from symptom onset. Batch correction across 3-5 batches would also be needed, as significant batch effects were found in other analyses of the proteomics data. If possible we would also do the same thing for the PBMC samples later, however the neutrophil data would be a first priority.
 
 #### Description of Proposed Work
 
@@ -121,7 +121,7 @@ Raw data are normalised to the median in each sample.
 
 ## Batches
 
-We have `r tar_read(n_samples)` samples. There are two treatments (drug and placebo), several time points and batches. @fig-counts-batch shows a summary of the sample numbers.
+We have `r tar_read(n_samples)` samples. There are two treatments (brensocatib and placebo), several time points and batches. @fig-counts-batch shows a summary of the sample numbers.
 
 ```{r}
 #| label: fig-counts-batch
@@ -212,7 +212,7 @@ tar_read(metadata_covid) |>
 
 Please note that sample naming in this report (`sample`) differs from the file/sample naming in the Spectronaut file (`data_col`). New sample name consists of the following:
 
--   treatment (`P` for placebo, `D` for drug)
+-   treatment (`P` for placebo, `B` for brensocatib)
 -   batch number (1-5)
 -   day (01, 04, 08, 15, 29)
 -   'replicate' number (1 .. n, within given treatment/batch/day)
@@ -285,7 +285,7 @@ tar_read(metadata_covid) |>
 #| fig-cap: Dendrogram of samples, based on logarithm of normalised intensity. 
 #| fig-width: 8
 #| fig-height: 12
-tar_read(fig_clustering_circular)
+tar_read(fig_clustering_circular) 
 ```
 
 ## Correlation matrix
@@ -369,7 +369,7 @@ tar_read(fig_ma_full)
 
 Note, that with dozens of samples available even small changes become statistically significant, so we need to pay attention to the effect size (log fold change).
 
-The biggest effect comes from batch differences and time points. The drug effect is week, though it shows a few differentially abundant (DA) proteins, these might be flukes. We are going to look at drug effect in details later. Similarly, other factors (age and sex) have very week effect on DA.
+The biggest effect comes from batch differences and time points. The brensocatib effect is week, though it shows a few differentially abundant (DA) proteins, these might be flukes. We are going to look at brensocatib effect in details later. Similarly, other factors (age and sex) have very week effect on DA.
 
 ## Batch effect
 
@@ -427,7 +427,7 @@ Results are shown in @fig-ma-day1.
 tar_read(fig_ma_day1) 
 ```
 
-Not surprisingly there is no drug effect on day 1.
+Not surprisingly there is no brensocatib effect on day 1.
 
 ## Day 29
 
@@ -441,7 +441,7 @@ Now the same for day 29 (@fig-ma-day29). Note that there is no batch 3 in day 29
 tar_read(fig_ma_day29) 
 ```
 
-A lot of proteins are 'significant' in drug effect, but the fold change is not any different from day 1. We need to be careful interpreting these results. Again, they are completely dominated by batch effects.
+A lot of proteins are 'significant' in brensocatib effect, but the fold change is not any different from day 1. We need to be careful interpreting these results. Again, they are completely dominated by batch effects.
 
 ## Day 29 and batch effects
 
@@ -466,7 +466,7 @@ cowplot::plot_grid(g1, g2, ncol = 1, align = "v")
 
 ```{r}
 #| label: fig-upset-day29
-#| fig-cap: UpSet plot to compare differential abundance (between drug and placebo) results for batch 4, batch 5 and both batches combined, at day 29. Each set consists with DA proteins (FDR < 0.01).
+#| fig-cap: UpSet plot to compare differential abundance (between brensocatib and placebo) results for batch 4, batch 5 and both batches combined, at day 29. Each set consists with DA proteins (FDR < 0.01).
 #| fig-width: 8
 #| fig-height: 5
 upset(fromList(tar_read(ups_day29))) 
@@ -478,7 +478,7 @@ The only proteins in agreement between three selections are listed in @tbl-dal-d
 #| label: tbl-dal-day29-treatment-best
 #| tbl-cap: DA proteins from overlap between results from batch 4 and 5.
 tar_read(dal_day29_treatment_best) |> 
-  select(-protein_names) |> 
+  select(Accession = protein_accessions, Description = protein_descriptions, `Gene symbol` = gene_names) |> 
   gt()
 ```
 
@@ -494,7 +494,7 @@ tar_read(fig_day29_best)
 
 ## The outlier
 
-There is one persistent outlier keeping high levels of AZU1 and CTSG on day 29, seemingly unaffected by the drug. It is the same participant, ID 1132, one of the youngest in the cohort, see @tbl-outlier and @fig-outlier.
+There is one persistent outlier keeping high levels of AZU1 and CTSG on day 29, seemingly unaffected by the brensocatib. It is the same participant, ID 1132, one of the youngest in the cohort, see @tbl-outlier and @fig-outlier.
 
 ```{r}
 #| label: tbl-outlier
@@ -525,7 +525,7 @@ Protein measurements at different time points are not independent, as they come 
 
 ```{r}
 #| label: fig-participants-1-29
-#| fig-cap: Graphical summary of sample delivery from all participants, both on drug and placebo. Colours show batches. Black lines indicate participants delivering samples both on day 1 and 29.
+#| fig-cap: Graphical summary of sample delivery from all participants, both on brensocatib and placebo. Colours show batches. Black lines indicate participants delivering samples both on day 1 and 29.
 #| fig-width: 10
 #| fig-height: 5
 tar_read(fig_participant_1_29)
@@ -555,9 +555,9 @@ tar_read(fig_lograt_dist)
 tar_read(fig_lograt_dist_norm)
 ```
 
-## Comparing day 1 and 29 for drug and placebo separately
+## Comparing day 1 and 29 for brensocatib and placebo separately
 
-First, we look at differential abundance between day 1 and 29, for drug and placebo separatly. We perform a one-sample test for each protein with the null hypothesis of $R = 0$. We use `limma` to control variance between proteins. This gives differential abundance in time (days 1 and 29), corrected for interdependence (participants).
+First, we look at differential abundance between day 1 and 29, for brensocatib and placebo separately. We perform a one-sample test for each protein with the null hypothesis of $R = 0$. We use `limma` to control variance between proteins. This gives differential abundance in time (days 1 and 29), corrected for interdependence (participants).
 
 ```{r}
 tar_load(gse_dl)
@@ -581,23 +581,23 @@ tb <- map_dfr(names(gse_dl), function(ont) {
 tar_read(fig_volcano_dl)
 ```
 
-Below, we show results for gene-set enrichment for placebo and drug. Not surprisingly, the top terms are response to virus. These proteins are changin down from day 1 to day 29, as most of the immune response was at the beginning of infection.
+Below, we show results for gene-set enrichment for placebo and brensocatib. Not surprisingly, the top terms are response to virus. These proteins are changin down from day 1 to day 29, as most of the immune response was at the beginning of infection.
 
 ### Placebo set enrichment
 
 ```{r}
-DT::datatable(tb |> filter(contrast == "placebo") |> select(-contrast))
+DT::datatable(tb |> filter(contrast == "Placebo") |> select(-contrast))
 ```
 
-### Drug set_enrichment
+### Brensocatib set enrichment
 
 ```{r}
-DT::datatable(tb |> filter(contrast == "drug") |> select(-contrast))
+DT::datatable(tb |> filter(contrast == "Brensocatib") |> select(-contrast))
 ```
 
-## Drug vs placebo
+## Brensocatib vs placebo
 
-In the next step, we compare day 1-to-29 change between drug and placebo. For this, we build a model `~ treatment + age_group + sex`, based on log-ratios $R_{ij}$ between days 1 and 29.
+In the next step, we compare day 1-to-29 change between brensocatib and placebo. For this, we build a model `~ treatment + age_group + sex`, based on log-ratios $R_{ij}$ between days 1 and 29.
 
 ```{r}
 #| label: fig-volcano_dl_drug_vs_placebo
@@ -607,15 +607,24 @@ In the next step, we compare day 1-to-29 change between drug and placebo. For th
 tar_read(fig_volcano_dl_drug_vs_placebo)
 ```
 
-The significant proteins are shown in @fig-dl-drug-vs-placebo.
+The significant proteins are shown in @fig-dl-drug-vs-placebo and @fig-timeline-drug-vs-placebo.
 
 ```{r}
 #| label: fig-dl-drug-vs-placebo
-#| fig-cap: Significant (FDR < 0.01) proteins for DA between drug and placebo based on paired log-ratio of day 1 and 29.
+#| fig-cap: Significant (FDR < 0.01) proteins for DA between brensocatib and placebo based on paired log-ratio of day 1 and 29.
 #| fig-width: 10
 #| fig-height: 8
 tar_read(fig_dl_drug_vs_placebo)
 ```
+
+```{r}
+#| label: fig-timeline-drug-vs-placebo
+#| fig-cap: Significant (FDR < 0.01) proteins for DA between brensocatib and placebo based on paired log-ratio of day 1 and 29. Points indicate the mean and error bars show 95% confidence intervals.
+#| fig-width: 10
+#| fig-height: 8
+tar_read(fig_timeline_drug_vs_placebo)
+```
+
 
 ## Gene set enrichment
 
