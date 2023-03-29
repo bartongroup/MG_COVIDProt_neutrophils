@@ -1,1 +1,1 @@
-rsync -rvm shiny/* rstudio:/homes/gjb-shiny-x/shiny/public/marek_covid_prot_neutrophils
+rsync -rvm shiny/* gjb-shiny-x@rstudio:/homes/gjb-shiny-x/shiny/private/marek_covid_prot_neutrophils

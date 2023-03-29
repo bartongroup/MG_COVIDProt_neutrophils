@@ -221,10 +221,10 @@ tar_read(fig_batch_examples)
 tar_load(gse_batch5)
 map_dfr(names(gse_batch5), function(ont) {
   gse_batch5[[ont]] |> 
-    filter(padj < 0.01) |> 
+    filter(fdr < 0.01) |> 
     add_column(ontology = ont, .before = 1) |> 
-    mutate(across(c(pval, padj, NES), ~signif(.x, 3))) |> 
-    select(ontology, term, term_name, padj, NES, size, contrast) |> 
+    mutate(across(c(p_value, fdr, nes), ~signif(.x, 3))) |> 
+    select(ontology, term_id, term_name, fdr, nes, size, contrast) |> 
     mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
 }) |> 
   gt()
@@ -294,13 +294,13 @@ tar_read(fig_volcano_dl)
 tar_load(gse_dl)
 tb <- map_dfr(names(gse_dl), function(ont) {
   gse_dl[[ont]] |> 
-    filter(padj < 0.01) |> 
+    filter(fdr < 0.01) |> 
     add_column(ontology = ont, .before = 1) |> 
     mutate(
-      padj = signif(padj, 2),
-      NES = signif(NES, 3)
+      fdr = signif(fdr, 2),
+      nes = signif(nes, 3)
     ) |> 
-    select(ontology, term, term_name, padj, NES, size, contrast) |> 
+    select(ontology, term_id, term_name, fdr, nes, size, contrast) |> 
     mutate(ontology = recode(ontology, go = "GO", re = "Reactome", kg = "KEGG"))
 })
 ```
@@ -316,7 +316,7 @@ tb |>
   filter(contrast == "drug") |>
   select(-contrast) |> 
   gt() |> 
-  fmt_scientific(padj, decimals = 1)
+  fmt_scientific(fdr, decimals = 1)
 ```
 
 ### Placebo
@@ -326,7 +326,7 @@ tb |>
   filter(contrast == "placebo") |>
   select(-contrast) |> 
   gt() |> 
-  fmt_scientific(padj, decimals = 1)
+  fmt_scientific(fdr, decimals = 1)
 ```
 
 :::

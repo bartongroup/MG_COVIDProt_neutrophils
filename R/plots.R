@@ -230,10 +230,10 @@ plot_clustering_circular <- function(set, what = "abu_norm", dist.method = "eucl
     ape::as.phylo() |> 
     ape::unroot()
   
-  m <- set$metadata |>
+  env$m <- set$metadata |>
     filter(sample %in% ph$tip.label)
-  colours <- split(m$sample, m[[colour_var]])
-  shapes <- split(m$sample, m[[shape_var]])
+  colours <- split(env$m$sample, env$m[[colour_var]])
+  shapes <- split(env$m$sample, env$m[[shape_var]])
 
   env$phg <- ph |> 
     groupOTU(colours, group_name = "colour") |> 
