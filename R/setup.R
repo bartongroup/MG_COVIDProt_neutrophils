@@ -1,13 +1,13 @@
 TAXONOMY_ID <- 9606
 SPECIES <- "human"
 ENSEMBL_DATASET <- "hsapiens_gene_ensembl"
-ENSEMBL_VERSION <- "106"
+ENSEMBL_VERSION <- "110"
 
 CHROMOSOMES <- c(1:22, "X", "Y", "MT")
 
 # Contaminant file downloaded from
 # http://lotus1.gwdg.de/mpg/mmbc/maxquant_input.nsf/7994124a4298328fc125748d0048fee2/$FILE/contaminants.fasta
-# on 10 Nove 2022
+# on 10 November 2022
 CONTAMINANT_FILE <- "info/contaminants.fasta"
 
 UNIPROT_MAPPING_FILE <- "ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/by_organism/HUMAN_9606_idmapping.dat.gz"

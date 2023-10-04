@@ -116,15 +116,13 @@ get_functional_terms <- function(ens2sym, sym2id, species) {
   
   sp <- SPECIES[[species]]
   cat("Loading GO term data\n")
-  go <- fenr::fetch_go_from_go(sp$go)
+  go <- fenr::fetch_go(species = sp$go, use_cache = FALSE)
   cat("Loading Reactome data\n")
-  re <- fenr::fetch_reactome(sp$re)
+  re <- fenr::fetch_reactome(species = sp$re)
   cat("Loading KEGG data\n")
-  kg <- fenr::fetch_kegg(sp$kg)
+  kg <- fenr::fetch_kegg(species = sp$kg)
   cat("Loading BioPlanet data\n")
-  bp <- fenr::fetch_bp()
-  #cat("Loading WikiPathways data\n")
-  #wi <- fenr::fetch_wiki(sp$wi)
+  bp <- fetch_bp()
 
   ens2sym <- ens2sym |> 
     select(gene_id, gene_symbol) |> 
@@ -138,7 +136,7 @@ get_functional_terms <- function(ens2sym, sym2id, species) {
     mapping |> 
       select(gene_symbol, term_id) |> 
       distinct() |> 
-      inner_join(sym2id, by = "gene_symbol", multiple = "all")
+      inner_join(sym2id, by = "gene_symbol", relationship = "many-to-many")
   }
 
   go$mapping <- go$mapping |> 
@@ -180,4 +178,39 @@ prepare_terms_fenr <- function(terms, all_features, feature_name = "id") {
     fenr::prepare_for_enrichment(trm$terms, trm$mapping, all_features, feature_name = feature_name)
   }) |> 
     set_names(ontologies)
+}
+
+
+#' Get functional term data from BioPlanet
+#'
+#' Download term information (term ID and name) and gene-pathway mapping
+#' (NCBI gene ID, gene symbol and pathway ID) from BioPlanet.
+#'
+#'
+#' @return A list with \code{terms} and \code{mapping} tibbles.
+#' @export
+#' @examples
+#' \dontrun{
+#' bioplanet_data <- fetch_bp()
+#' }
+fetch_bp <- function() {
+  # Binding variables from non-standard evaluation locally
+  PATHWAY_ID <- PATHWAY_NAME <- GENE_ID <- GENE_SYMBOL <- NULL
+  
+  bp_file <- "https://tripod.nih.gov/bioplanet/download/pathway.csv"
+  
+  paths <- readr::read_csv(bp_file, show_col_types = FALSE)
+  
+  terms <- paths |>
+    dplyr::select(term_id = PATHWAY_ID, term_name = PATHWAY_NAME) |>
+    dplyr::distinct()
+  
+  mapping <- paths |>
+    dplyr::select(term_id = PATHWAY_ID, ncbi_id = GENE_ID, gene_symbol = GENE_SYMBOL) |>
+    dplyr::distinct()
+  
+  list(
+    terms = terms,
+    mapping = mapping
+  )
 }

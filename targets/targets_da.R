@@ -18,10 +18,10 @@ targets_differential_abundance <- function() {
   )
   
   da_lists <- list(
-    tar_target(dal_day29, de_list(da_day29, "contrast", split_up_down = FALSE, fdr_limit = FDR_LIMIT)),
-    tar_target(dal_day29_b4, de_list(da_day29_b4, "contrast", split_up_down = FALSE, fdr_limit = FDR_LIMIT)),
-    tar_target(dal_day29_b5, de_list(da_day29_b5, "contrast", split_up_down = FALSE, fdr_limit = FDR_LIMIT)),
-    tar_target(dal_dl_drug_vs_placebo, de_list(dl_drug_vs_placebo, "contrast", split_up_down = FALSE, fdr_limit = FDR_LIMIT))
+    tar_target(da_list_day29, de_list(da_day29, "contrast", split_up_down = FALSE, fdr_limit = FDR_LIMIT)),
+    tar_target(da_list_day29_b4, de_list(da_day29_b4, "contrast", split_up_down = FALSE, fdr_limit = FDR_LIMIT)),
+    tar_target(da_list_day29_b5, de_list(da_day29_b5, "contrast", split_up_down = FALSE, fdr_limit = FDR_LIMIT)),
+    tar_target(dl_list_drug_vs_placebo, de_list(dl_drug_vs_placebo, "contrast", split_up_down = FALSE, fdr_limit = FDR_LIMIT))
   )
   
   fgsea <- list(

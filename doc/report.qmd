@@ -218,6 +218,7 @@ Please note that sample naming in this report (`sample`) differs from the file/s
 -   'replicate' number (1 .. n, within given treatment/batch/day)
 
 ```{r}
+#| cache: false
 m <- tar_read(metadata_covid) |> 
   select(sample, data_col, batch, run_index, participant_id, treatment, day, age, sex, completion)
 DT::datatable(m) |>
@@ -229,6 +230,7 @@ DT::datatable(m) |>
 ## Table of participants
 
 ```{r}
+#| cache: false
 DT::datatable(tar_read(participants)) 
 ```
 
@@ -477,7 +479,7 @@ The only proteins in agreement between three selections are listed in @tbl-dal-d
 ```{r}
 #| label: tbl-dal-day29-treatment-best
 #| tbl-cap: DA proteins from overlap between results from batch 4 and 5.
-tar_read(dal_day29_treatment_best) |> 
+tar_read(da_list_day29_treatment_best) |> 
   select(Accession = protein_accessions, Description = protein_descriptions, `Gene symbol` = gene_names) |> 
   gt()
 ```
@@ -552,7 +554,7 @@ tar_read(fig_lograt_dist)
 #| fig-cap: Distributon of R for each participant, after quantile normalisation. Colours code batch at day 1 and day 29.
 #| fig-width: 8
 #| fig-height: 10
-tar_read(fig_lograt_dist_norm)
+tar_read(fig_lograt_dist_quant)
 ```
 
 ## Comparing day 1 and 29 for brensocatib and placebo separately
@@ -586,12 +588,14 @@ Below, we show results for gene-set enrichment for placebo and brensocatib. Not 
 ### Placebo set enrichment
 
 ```{r}
+#| cache: false
 DT::datatable(tb |> filter(contrast == "Placebo") |> select(-contrast))
 ```
 
 ### Brensocatib set enrichment
 
 ```{r}
+#| cache: false
 DT::datatable(tb |> filter(contrast == "Brensocatib") |> select(-contrast))
 ```
 
@@ -641,9 +645,10 @@ Below is the full result of gene-set-enrichment procedure (excluding batch effec
 ```{r}
 #| label: tbl-gse-day29
 #| tbl-cap: Significant terms for GSE on day 29.
+#| cache: false
 tar_read(gse_da_day29_sig) |> 
-  select(-ontology) |> 
-  DT::datatable()
+  select(-c(ontology, fdr, size)) |> 
+  gt::gt()
 ```
 
 

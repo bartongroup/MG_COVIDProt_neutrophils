@@ -262,7 +262,7 @@ upset(fromList(tar_read(ups_day29)))
 ## Day 29 best guess {.smaller}
 
 ```{r}
-tar_read(dal_day29_treatment_best) |> 
+tar_read(da_list_day29_treatment_best) |> 
   select(-protein_names) |> 
   gt()
 ```

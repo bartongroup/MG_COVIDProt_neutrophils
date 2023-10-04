@@ -39,17 +39,17 @@ targets_report <- function() {
     tar_target(fig_volcano_dl_drug_vs_placebo, plot_volcano(dl_drug_vs_placebo, fdr_limit = FDR_LIMIT)),
     
     tar_target(fig_batch_examples, plot_protein(covid, pids = BATCH_EXAMPLES, colour_var = "run_index", shape_var = "batch")),
-    tar_target(fig_day29_best, plot_protein(covid, pids = dal_day29_treatment_best_ids, ncol = 5)),
-    tar_target(fig_day29_best_part1132, plot_protein(covid, pids = dal_day29_treatment_best_ids, ncol = 5, sample_sel = c("B5_01-35", "B5_29-18"))),
-    tar_target(fig_dl_drug_vs_placebo, plot_lograt_protein(lograt, pids = dal_dl_drug_vs_placebo$treatmentBrensocatib, what = "logFC_quant", ncol = 5)),
-    tar_target(fig_timeline_drug_vs_placebo, plot_protein_means(covid, pids = dal_dl_drug_vs_placebo$treatmentBrensocatib, ncol = 5)),
+    tar_target(fig_day29_best, plot_protein(covid, pids = da_list_day29_treatment_best_ids, ncol = 5)),
+    tar_target(fig_day29_best_part1132, plot_protein(covid, pids = da_list_day29_treatment_best_ids, ncol = 5, sample_sel = c("B5_01-35", "B5_29-18"))),
+    tar_target(fig_dl_drug_vs_placebo, plot_lograt_protein(lograt, pids = dl_list_drug_vs_placebo$treatmentBrensocatib, what = "logFC_quant", ncol = 5)),
+    tar_target(fig_timeline_drug_vs_placebo, plot_protein_means(covid, pids = dl_list_drug_vs_placebo$treatmentBrensocatib, ncol = 5)),
     
     tar_target(fig_lograt_dist, plot_sample_ridges(lograt, what = "logFC", name_var = "participant_id", fill_var = "batches", scale = 6, bandwidth = 0.06) + xlim(-3, 3)),
     tar_target(fig_lograt_dist_quant, plot_sample_ridges(lograt, what = "logFC_quant", name_var = "participant_id", fill_var = "batches", scale = 6, bandwidth = 0.06) + xlim(-3, 3))
   )
   
   upsets <- list(
-    tar_target(ups_day29, list(batch4 = dal_day29_b4$treatmentBrensocatib, batch5 = dal_day29_b5$treatmentBrensocatib, both = dal_day29$treatmentBrensocatib))
+    tar_target(ups_day29, list(batch4 = da_list_day29_b4$treatmentBrensocatib, batch5 = da_list_day29_b5$treatmentBrensocatib, both = da_list_day29$treatmentBrensocatib))
   )
   
   numbers_and_tables <- list(
@@ -62,10 +62,10 @@ targets_report <- function() {
     tar_target(n_full_detection, detection_samples(covid)$n[1]),
     tar_target(n_samples, nrow(covid$metadata)),
     
-    tar_target(dal_day29_treatment_best_ids, Reduce(intersect, ups_day29)),
-    tar_target(dal_day29_treatment_best, covid$info |> filter(id %in% dal_day29_treatment_best_ids)),
+    tar_target(da_list_day29_treatment_best_ids, Reduce(intersect, ups_day29)),
+    tar_target(da_list_day29_treatment_best, covid$info |> filter(id %in% da_list_day29_treatment_best_ids)),
     
-    tar_target(dal_dl_drug_vs_placebo_proteins, covid$info |> filter(id %in% dal_dl_drug_vs_placebo$treatmentBrensocatib)),
+    tar_target(dl_list_drug_vs_placebo_proteins, covid$info |> filter(id %in% dl_list_drug_vs_placebo$treatmentBrensocatib)),
     
     tar_target(sav_csv, save_data_csv(covid, "tab/full_data.csv"))
   )
