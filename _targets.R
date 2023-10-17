@@ -34,6 +34,7 @@ c(
   targets_data(),
   targets_differential_abundance(),
   targets_profiles(),
-  targets_report()
+  targets_report(),
+  targets_manuscript()
 )
 

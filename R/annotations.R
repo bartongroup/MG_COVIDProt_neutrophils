@@ -116,7 +116,7 @@ get_functional_terms <- function(ens2sym, sym2id, species) {
   
   sp <- SPECIES[[species]]
   cat("Loading GO term data\n")
-  go <- fenr::fetch_go(species = sp$go, use_cache = FALSE)
+  go <- fenr::fetch_go(species = sp$go, use_cache = TRUE)
   cat("Loading Reactome data\n")
   re <- fenr::fetch_reactome(species = sp$re)
   cat("Loading KEGG data\n")
