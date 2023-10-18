@@ -19,6 +19,7 @@ targets_data <- function() {
     tar_target(genes, detected_proteins$gene_symbol |> unique()),
     tar_target(all_genes, covid$id_prot_gene$gene_symbol |> unique()),
     tar_target(all_ids, covid$info$id),
+    tar_target(id2gene, set_names(covid$info$gene_names, as.character(covid$info$id))),
     tar_target(participants, collect_participant_stats(covid$metadata))
   )
   

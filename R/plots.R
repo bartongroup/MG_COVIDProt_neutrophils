@@ -449,8 +449,8 @@ plot_big_heatmap <- function(set, what = "abu_norm", min_n = 100, max_fc = 2,
   
   genes <- tibble(id = rownames(tab) |> as.integer()) |> 
     left_join(set$info, by = "id") |> 
-    unite(gid, c(id, gene_names), sep = "-") |> 
-    pull(gid)
+    #unite(gid, c(id, gene_names), sep = "-") |> 
+    pull(gene_names)
   rownames(tab) <- genes
 
   ggheatmap(tab, order.col = order_col, with.x.text = TRUE, with.y.text = with_y_text,
