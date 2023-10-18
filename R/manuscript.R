@@ -20,11 +20,15 @@ mn_plot_volcano <- function(de, ctr, fdr_limit = 0.01) {
   d_sig <- d |> 
     filter(FDR < fdr_limit)
   
+  rep_colour <- "green4"
+  
   ggplot() +
     th +
     geom_point(aes(x = logFC, y = logp), data = d_nsig, size = 0.3, colour = "grey70") +
     geom_point(aes(x = logFC, y = logp), data = d_sig, size = 0.4, colour = "black") +
     geom_vline(xintercept = 0, linewidth = 0.1, alpha = 0.5) +
+    geom_text_repel(aes(x = logFC, y = logp, label = gene_symbol), data = d_sig, size = 3, force = 5,
+                    max.overlaps = 30, segment.color = rep_colour, colour = rep_colour) +
     labs(x = expression(log[2]~FC), y = expression(-log[10]~P)) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.03)))
 }
