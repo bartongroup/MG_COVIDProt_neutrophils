@@ -1,8 +1,8 @@
 # Convert raw output from limma into a useful format
-tabulate_de <- function(fit) {
+tabulate_de <- function(fit, convert_log = TRUE) {
   coefs <- colnames(fit$coefficients) |> 
     str_subset("Intercept", negate = TRUE)
-  map_dfr(coefs, function(ctr) {
+  d <- map_dfr(coefs, function(ctr) {
     limma::topTable(fit, coef = ctr, number = 1e6, sort.by = "none") |>
       as_tibble(rownames = "id") |>
       add_column(contrast = ctr)
@@ -12,14 +12,16 @@ tabulate_de <- function(fit) {
     rename(FDR = adj.P.Val, PValue = P.Value) |>
     mutate(
       id = as.integer(id),
-      logFC = logFC / log10(2),    # convert into log2
       contrast = factor(contrast, levels = coefs)
     )
+  if(convert_log)
+    d <- d |> mutate(logFC = logFC / log10(2))   # convert into log2
+  d
 }
 
 # DE for selected contrasts; if not specified, all pairs of contrasts 
 limma_de <- function(set, contrasts = NULL, group_var = "treatment", what = "abu_norm",
-                     filt = "TRUE", names = "sample") {
+                     filt = "TRUE", names = "sample", convert_log = TRUE) {
   meta <- set$metadata |> 
     filter(!bad & !!rlang::parse_expr(filt)) |> 
     mutate(group = get(group_var)) |> 
@@ -45,14 +47,14 @@ limma_de <- function(set, contrasts = NULL, group_var = "treatment", what = "abu
     limma::contrasts.fit(contrasts = contrast_mat) |>
     limma::eBayes()
   
-  tabulate_de(fit) |> 
+  tabulate_de(fit, convert_log) |> 
     add_genes(set$info)
 }
 
 
 
 # DE with formula
-limma_de_f <- function(set, formula, what = "abu_norm", filt = "TRUE", names = "sample") {
+limma_de_f <- function(set, formula, what = "abu_norm", filt = "TRUE", names = "sample", convert_log = TRUE) {
   meta <- set$metadata |> 
     filter(!bad & !!rlang::parse_expr(filt)) |> 
     droplevels()
@@ -64,7 +66,7 @@ limma_de_f <- function(set, formula, what = "abu_norm", filt = "TRUE", names = "
     limma::lmFit(design_mat) |>
     limma::eBayes()
   
-  tabulate_de(fit) |> 
+  tabulate_de(fit, convert_log) |> 
     add_genes(set$info)
 }
 

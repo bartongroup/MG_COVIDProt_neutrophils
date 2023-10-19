@@ -1044,13 +1044,13 @@
     },
     "fenr": {
       "Package": "fenr",
-      "Version": "0.99.6",
+      "Version": "0.99.7",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteUsername": "bartongroup",
       "RemoteRepo": "fenr",
       "RemoteRef": "main",
-      "RemoteSha": "333a51f1258819f05b270fa1d6e35b099b9a2823",
+      "RemoteSha": "6bd0a7ad5f0992f10fda926cac035186c43deac9",
       "RemoteHost": "api.github.com",
       "Requirements": [
         "BiocFileCache",
@@ -1074,7 +1074,7 @@
         "tidyselect",
         "tools"
       ],
-      "Hash": "8be6adffc3b0916da2659a67f0926372"
+      "Hash": "bc509e923cff3ad90278aed7c15b2baa"
     },
     "fgsea": {
       "Package": "fgsea",

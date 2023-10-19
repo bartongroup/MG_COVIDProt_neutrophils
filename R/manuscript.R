@@ -27,9 +27,9 @@ mn_plot_volcano <- function(de, ctr, fdr_limit = 0.01) {
     geom_point(aes(x = logFC, y = logp), data = d_nsig, size = 0.3, colour = "grey70") +
     geom_point(aes(x = logFC, y = logp), data = d_sig, size = 0.4, colour = "black") +
     geom_vline(xintercept = 0, linewidth = 0.1, alpha = 0.5) +
-    geom_text_repel(aes(x = logFC, y = logp, label = gene_symbol), data = d_sig, size = 3, force = 5,
+    geom_text_repel(aes(x = logFC, y = logp, label = gene_symbol), data = d_sig, size = 2.5, force = 2,
                     max.overlaps = 30, segment.color = rep_colour, colour = rep_colour) +
-    labs(x = expression(log[2]~FC), y = expression(-log[10]~P)) +
+    labs(x = expression(log[2](I[29]/I[1])[B]-log[2](I[29]/I[1])[P]), y = expression(-log[10]~p)) +
     scale_y_continuous(expand = expansion(mult = c(0, 0.03)))
 }
 
@@ -63,7 +63,7 @@ mn_plot_diff_heatmap <- function(set, what = "abu_norm", max_fc = 2, id_sel = NU
     ) +
     geom_tile() +
     scale_fill_distiller(type = "div", palette = "RdBu", limits = c(-mx, mx),
-                         name = expression(log[2]~FC)) +
+                         name = expression(log[2]~(I[B]/I[P]))) +
     labs(x = "Day", y = NULL)
 }
 
@@ -97,7 +97,9 @@ mn_plot_protein_means <- function(set, pids, what = "abu_norm", min_n = 3, ncol 
   d |> 
     ggplot(aes(x = day, y = m, ymin = m - ci, ymax = m + ci, colour = treatment, fill = treatment)) +
     th +
-    theme(legend.position = "top") +
+    theme(
+      legend.position = "top"
+    ) +
     geom_line(alpha = 0.5, position = pd) +
     geom_errorbar(position = pd, width = 1) +
     geom_point(position = pd, shape = 21, colour = "grey30") +
@@ -105,7 +107,7 @@ mn_plot_protein_means <- function(set, pids, what = "abu_norm", min_n = 3, ncol 
     scale_colour_manual(values = okabe_ito_palette, name = "Treatment") +
     scale_fill_manual(values = okabe_ito_palette, name = "Treatment") +
     scale_x_continuous(breaks = days) +
-    labs(x = "Day", y = "Normalised abundance")
+    labs(x = "Day", y = expression(log[10]~Intensity))
 }
 
 
@@ -163,5 +165,5 @@ mn_plot_enrichment <- function(enr, fdr_limit = 0.01) {
     theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5)) +
     geom_point(shape = 21) +
     scale_fill_viridis_c(option = "cividis") +
-    labs(x = NULL, y = NULL, size = "Odds ratio", fill = "log P value")
+    labs(x = NULL, y = NULL, size = "Odds ratio", fill = expression(log[10]~p))
 }

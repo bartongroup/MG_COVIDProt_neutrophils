@@ -14,7 +14,8 @@ targets_differential_abundance <- function() {
     tar_target(dl_drug, limma_de_ratio(lograt, what = "logFC_quant", filt = "treatment == 'Brensocatib'")),
     tar_target(dl_placebo, limma_de_ratio(lograt, what = "logFC_quant", filt = "treatment == 'Placebo'")),
     tar_target(dl_all, bind_rows(dl_drug |> mutate(contrast = "Brensocatib"), dl_placebo |> mutate(contrast = "Placebo"))),
-    tar_target(dl_drug_vs_placebo, limma_de_f(lograt, formula = "~ treatment + age_group + sex", what = "logFC_quant", names = "participant_id", filt = "completion"))
+    tar_target(dl_drug_vs_placebo, limma_de_f(lograt, formula = "~ treatment + age_group + sex", what = "logFC_quant",
+                                              names = "participant_id", filt = "completion", convert_log = FALSE))
   )
   
   da_lists <- list(

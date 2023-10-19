@@ -9,7 +9,10 @@ targets_manuscript <- function() {
   )
   
   calculations <- tar_plan(
-    enr_go = functional_enrichment(as.character(all_ids), as.character(ids_significant), fterms$go, id2gene)
+    enr_go = functional_enrichment(as.character(all_ids), as.character(ids_significant), fterms$go, id2gene) |> add_column(ont = "go"),
+    enr_re = functional_enrichment(as.character(all_ids), as.character(ids_significant), fterms$re, id2gene) |> add_column(ont = "re"),
+    enr_kg = functional_enrichment(as.character(all_ids), as.character(ids_significant), fterms$kg, id2gene) |> add_column(ont = "kg"),
+    enr = bind_rows(enr_go, enr_re, enr_kg) |> filter(p_adjust < 0.05) |> unite(term_name, c(ont, term_name), sep = ": ")
   )
   
   figures <- tar_plan(
@@ -20,7 +23,7 @@ targets_manuscript <- function() {
     pdf_lograt_sig = mn_plot_lograt_protein(lograt, ids_significant) |> gp("lograt_significant", 6, 9),
     pdf_lograt_add = mn_plot_lograt_protein(lograt, ids_selection) |> gp("lograt_selection", 4.5, 4.5),
     pdf_lograt_sel = mn_plot_lograt_protein(lograt, ids_supplement) |> gp("lograt_supplement", 4.5, 2.8),
-    pdf_go_terms = mn_plot_enrichment(enr_go) |> gp("go_enrichment_significant", 6.5, 3.8)
+    pdf_go_terms = mn_plot_enrichment(enr) |> gp("enrichment_significant", 6.5, 3.8)
   )
   
   c(
