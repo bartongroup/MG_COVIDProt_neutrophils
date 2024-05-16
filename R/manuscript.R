@@ -11,7 +11,7 @@ gp <- function(gg, name, width, height) {
 }
 
 
-mn_plot_volcano <- function(de, ctr, fdr_limit = 0.01) {
+mn_plot_volcano <- function(de, ctr, x_limits = c(-4, 4), fdr_limit = 0.01) {
   d <- de |> 
     filter(contrast == ctr) |> 
     mutate(logp = -log10(PValue))
@@ -27,14 +27,16 @@ mn_plot_volcano <- function(de, ctr, fdr_limit = 0.01) {
     geom_point(aes(x = logFC, y = logp), data = d_nsig, size = 0.3, colour = "grey70") +
     geom_point(aes(x = logFC, y = logp), data = d_sig, size = 0.4, colour = "black") +
     geom_vline(xintercept = 0, linewidth = 0.1, alpha = 0.5) +
-    geom_text_repel(aes(x = logFC, y = logp, label = gene_symbol), data = d_sig, size = 2.5, force = 2,
+    geom_text_repel(aes(x = logFC, y = logp, label = gene_symbol), data = d_sig, size = 2.5, force = 5,
                     max.overlaps = 30, segment.color = rep_colour, colour = rep_colour) +
     labs(x = expression(log[2](I[29]/I[1])[B]-log[2](I[29]/I[1])[P]), y = expression(-log[10]~p)) +
-    scale_y_continuous(expand = expansion(mult = c(0, 0.03)))
+    scale_y_continuous(expand = expansion(mult = c(0, 0.03))) +
+    scale_x_continuous(limits = x_limits, expand = c(0, 0))
 }
 
 
-mn_plot_diff_heatmap <- function(set, what = "abu_norm", max_fc = 2, id_sel = NULL, text.size = 8) {
+mn_plot_diff_heatmap <- function(set, what = "abu_norm", max_fc = 2, id_sel = NULL, text.size = 8,
+                                 exclude_days = 4) {
   
   meta <- set$metadata
   
@@ -42,6 +44,7 @@ mn_plot_diff_heatmap <- function(set, what = "abu_norm", max_fc = 2, id_sel = NU
     mutate(val = get(what)) |>
     filter(id %in% id_sel) |> 
     left_join(set$metadata, by = "sample") |> 
+    filter(!(day %in% exclude_days)) |> 
     group_by(id, treatment, day) |> 
     summarise(val = mean(val)) |> 
     pivot_wider(id_cols = c(id, day), names_from = treatment, values_from = val) |> 
@@ -69,7 +72,7 @@ mn_plot_diff_heatmap <- function(set, what = "abu_norm", max_fc = 2, id_sel = NU
 
 
 mn_plot_protein_means <- function(set, pids, what = "abu_norm", min_n = 3, ncol = 3,
-                                  exclude_days = 4, dodge_width = 1) {
+                                  exclude_days = 4, dodge_width = 0, y_limits = c(5.7, 9.7)) {
   info <- set$info |> 
     filter(id %in% pids) |> 
     mutate(prot = gene_names)
@@ -98,15 +101,17 @@ mn_plot_protein_means <- function(set, pids, what = "abu_norm", min_n = 3, ncol 
     ggplot(aes(x = day, y = m, ymin = m - ci, ymax = m + ci, colour = treatment, fill = treatment)) +
     th +
     theme(
-      legend.position = "top"
+      legend.position = "top",
+      strip.background = element_blank()
     ) +
     geom_line(alpha = 0.5, position = pd) +
     geom_errorbar(position = pd, width = 1) +
-    geom_point(position = pd, shape = 21, colour = "grey30") +
-    facet_wrap(~prot, labeller = label_wrap_gen(), scales = "free_y", ncol = ncol) +
+    geom_point(position = pd, shape = 21, colour = "grey30", size = 2) +
+    facet_wrap(~prot, labeller = label_wrap_gen(), scales = "fixed", ncol = ncol) +
     scale_colour_manual(values = okabe_ito_palette, name = "Treatment") +
     scale_fill_manual(values = okabe_ito_palette, name = "Treatment") +
     scale_x_continuous(breaks = days) +
+    scale_y_continuous(limits = y_limits, expand = c(0, 0)) +
     labs(x = "Day", y = expression(log[10]~Intensity))
 }
 

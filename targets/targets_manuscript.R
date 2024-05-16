@@ -17,9 +17,9 @@ targets_manuscript <- function() {
   
   figures <- tar_plan(
     pdf_volcano_brensocatib = mn_plot_volcano(dl_drug_vs_placebo, ctr = "treatmentBrensocatib") |> gp("volcano_drug_vs_placebo_29-1", 4, 4),
-    pdf_heatmap_sig = mn_plot_diff_heatmap(covid, id_sel = ids_significant) |> gp("heatmap_significant", 3, 4),
+    pdf_heatmap_sig = mn_plot_diff_heatmap(covid, id_sel = ids_significant) |> gp("heatmap_significant", 2.8, 4),
     pdf_timelines_sel = mn_plot_protein_means(covid, ids_selection) |> gp("timelines_selection", 5, 5),
-    pdf_timelines_add = mn_plot_protein_means(covid, ids_supplement) |> gp("timelines_supplment", 5, 3),
+    pdf_timelines_add = mn_plot_protein_means(covid, ids_supplement) |> gp("timelines_supplement", 5, 3),
     pdf_lograt_sig = mn_plot_lograt_protein(lograt, ids_significant) |> gp("lograt_significant", 6, 9),
     pdf_lograt_add = mn_plot_lograt_protein(lograt, ids_selection) |> gp("lograt_selection", 4.5, 4.5),
     pdf_lograt_sel = mn_plot_lograt_protein(lograt, ids_supplement) |> gp("lograt_supplement", 4.5, 2.8),
