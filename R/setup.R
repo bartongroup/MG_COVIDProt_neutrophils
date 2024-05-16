@@ -1,7 +1,7 @@
 TAXONOMY_ID <- 9606
 SPECIES <- "human"
 ENSEMBL_DATASET <- "hsapiens_gene_ensembl"
-ENSEMBL_VERSION <- "110"
+ENSEMBL_VERSION <- "112"
 
 CHROMOSOMES <- c(1:22, "X", "Y", "MT")
 

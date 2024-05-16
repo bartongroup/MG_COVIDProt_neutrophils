@@ -1,7 +1,7 @@
 th <- ggplot2::theme_bw() +
   ggplot2::theme(
     panel.grid = ggplot2::element_blank(),
-    strip.background = element_rect(fill = "grey90")
+    strip.background = ggplot2::element_rect(fill = "grey90")
   )
 
 gp <- function(gg, name, width, height) {
