@@ -143,7 +143,6 @@ get_functional_terms <- function(ens2sym, sym2id, species) {
     add_protein_id()
   
   re$mapping <- re$mapping |> 
-    inner_join(ens2sym, by = "gene_id") |> 
     add_protein_id()
   
   kg$mapping <- kg$mapping |> 
