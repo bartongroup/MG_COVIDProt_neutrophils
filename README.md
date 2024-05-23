@@ -1,4 +1,4 @@
-# Large-scale proteomics of COVID neutrophils
+# Large-scale proteomics of COVID-19 neutrophils
 
 Maintainer: Marek Gierlinski (M.Gierlinski@dundee.ac.uk)
 
