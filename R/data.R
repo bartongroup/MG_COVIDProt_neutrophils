@@ -456,6 +456,17 @@ save_data_csv <- function(set, file) {
   return(1)
 }
 
+save_de_csv <- function(de, info, file, ctr = "treatmentBrensocatib", fdr_limit = 0.05) {
+  de |> 
+    filter(contrast == ctr & FDR <= fdr_limit) |> 
+    left_join(info, by = "id") |> 
+    select(gene_symbol, protein_accessions, protein_descriptions, logFC, AveExpr, PValue, FDR) |> 
+    mutate(across(where(is.numeric), ~signif(.x, 4))) |> 
+    arrange(logFC) |> 
+    write_csv(file)
+  return(1)
+}
+
 collect_participant_stats <- function(meta) {
   # used to collapse day and on_drug into string
   days <- levels(meta$day) |> as.integer()
@@ -488,3 +499,14 @@ read_contaminants <- function(fasta_file) {
     str_remove(">")
 }
 
+
+save_combined <- function(dl_drug_vs_placebo, da_full, info, sfile) {
+  dl_drug_vs_placebo |>
+    filter(contrast== "treatmentBrensocatib") |>
+    left_join(da_full |> filter(contrast == "treatmentBrensocatib") |> select(id, mean_abundance = AveExpr), by = "id") |> 
+    left_join(info, by = "id") |> 
+    select(gene_symbol, protein_accessions, protein_descriptions, logFC, mean_abundance, PValue, FDR) |> 
+    arrange(FDR) |> 
+    mutate(across(where(is.numeric), ~signif(.x, 2))) |> 
+    write_csv(sfile)
+}

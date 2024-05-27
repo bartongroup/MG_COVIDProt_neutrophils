@@ -4,6 +4,8 @@ targets_differential_abundance <- function() {
     tar_target(da_full, limma_de_f(covid, "~ treatment + day + batch + age_group + sex", filt = BASE_FILTER)),
     tar_target(da_batch, limma_de(covid, contrasts = c("x5-x4", "x5-x3", "x4-x3"), group_var = "batch", filt = BASE_FILTER)),
     tar_target(da_day1, limma_de_f(covid, "~ treatment + batch + age_group + sex", filt = paste(BASE_FILTER, "& day == 1"))),
+    tar_target(da_day8, limma_de_f(covid, "~ treatment + batch + age_group + sex", filt = paste(BASE_FILTER, "& day == 8"))),
+    tar_target(da_day15, limma_de_f(covid, "~ treatment + batch + age_group + sex", filt = paste(BASE_FILTER, "& day == 15"))),
     tar_target(da_day29, limma_de_f(covid, "~ treatment + batch + age_group + sex", filt = paste(BASE_FILTER, "& day == 29"))),
     tar_target(da_day29_b4, limma_de_f(covid, "~ treatment + age_group + sex", filt = paste(BASE_FILTER, "& batch == 4 & day == 29"))),
     tar_target(da_day29_b5, limma_de_f(covid, "~ treatment + age_group + sex", filt = paste(BASE_FILTER, "& batch == 5 & day == 29")))
