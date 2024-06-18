@@ -173,9 +173,15 @@ plot_kernel_comparison <- function(set) {
   cowplot::plot_grid(g1, g2, nrow = 1, labels = c("A", "B"))
 }
 
-plot_clustering <- function(set, text_size = 10, what = "abu_norm", dist.method = "euclidean",
-                            clust.method = "complete", colour_var = "treatment") {
-  tab <- dat2mat(set$dat, what)
+plot_clustering <- function(set, text_size = 10, what = "abu_norm", id_sel = NULL, names = "sample",
+                            dist.method = "euclidean", clust.method = "complete", colour_var = "treatment") {
+  if(is.null(id_sel)) {
+    dat <- set$dat
+  } else {
+    dat <- set$dat |> filter(id %in% id_sel)
+  }
+  
+  tab <- dat2mat(dat, what, names)
   
   dendr <- t(tab) |> 
     dist(method = dist.method) |> 
@@ -187,9 +193,9 @@ plot_clustering <- function(set, text_size = 10, what = "abu_norm", dist.method 
   meta <- set$metadata |>
     mutate(
       colvar = get(colour_var),
-      sample = as.character(sample)
+      name = get(names) |> as.character(),
     )
-  labs <- left_join(dendr$labels |> mutate(label = as.character(label)), meta, by = c("label" = "sample")) |> 
+  labs <- left_join(dendr$labels |> mutate(label = as.character(label)), meta, by = c("label" = "name")) |> 
     mutate(colour = okabe_ito_palette[as_factor(colvar)])
   theme.d <- ggplot2::theme(
     panel.grid.major = ggplot2::element_blank(),

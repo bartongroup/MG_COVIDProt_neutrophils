@@ -269,7 +269,7 @@ There is a dramatic drop at the end of the right panel, which is due to one samp
 tar_read(metadata_covid) |> 
   filter(bad) |> 
   select(sample, data_col, batch, participant_id, treatment, day, age, sex, completion) |> 
-  gt()
+  gt() 
 ```
 
 ## Abundance distribution

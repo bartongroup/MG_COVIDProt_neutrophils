@@ -29,7 +29,8 @@ targets_manuscript <- function() {
   tables <- tar_plan(
     tbl_drug_placebo_significant_005 = save_de_csv(dl_drug_vs_placebo, covid$info, "tab/de_drug_placebo.csv"),
     tbl_sample_count = covid$metadata |> count(treatment, day) |> write_csv("tab/sample_count.csv"),
-    tbl_de_combined = save_combined(dl_drug_vs_placebo, da_full, covid$info, "tab/de.csv")
+    tbl_de_combined = save_combined(dl_drug_vs_placebo, da_full, covid$info, "tab/de.csv"),
+    tbl_lograt_significant_n = mn_get_n(lograt, ids_significant) |> write_csv("tab/significant_counts.csv")
   )
   
   c(

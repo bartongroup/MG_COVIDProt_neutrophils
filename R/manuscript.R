@@ -116,7 +116,7 @@ mn_plot_protein_means <- function(set, pids, what = "abu_norm", min_n = 3, ncol 
 }
 
 
-mn_plot_lograt_protein <- function(df, pids, ncol = NULL, what = "logFC", filt = "completion") {
+mn_plot_lograt_protein <- function(df, pids, ncol = NULL, what = "logFC_quant", filt = "completion") {
   info <- df$info |> 
     filter(id %in% pids) |> 
     mutate(prot = gene_names)
@@ -171,4 +171,18 @@ mn_plot_enrichment <- function(enr, fdr_limit = 0.01) {
     geom_point(shape = 21) +
     scale_fill_viridis_c(option = "cividis") +
     labs(x = NULL, y = NULL, size = "Odds ratio", fill = expression(log[10]~p))
+}
+
+
+mn_get_n <- function(df, pids, filt = "completion") {
+  info <- df$info |> 
+    filter(id %in% pids) |> 
+    mutate(prot = gene_names)
+  df$dat |> 
+    filter(id %in% pids) |> 
+    left_join(df$metadata, by = "participant_id") |> 
+    filter(!bad & !!rlang::parse_expr(filt)) |> 
+    left_join(info, by = "id") |> 
+    count(prot, protein_descriptions, treatment) |> 
+    pivot_wider(id_cols = c(prot, protein_descriptions), names_from = treatment, values_from = n)
 }
